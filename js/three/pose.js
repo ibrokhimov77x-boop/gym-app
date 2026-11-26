@@ -14,6 +14,7 @@ const makeEff = () => ({
   pos: new THREE.Vector3(), hint: new THREE.Vector3(), hasHint: false,
   palm: new THREE.Vector3(), hasPalm: false, q: new THREE.Quaternion(), hasQ: false,
   pivot: new THREE.Vector3(), hasPivot: false,
+  toes: 0,   // feet only: degrees the toes are bent up at the balls of the foot (figure.js turns the toe bone)
 });
 
 export function createPose() {
@@ -24,7 +25,7 @@ export function createPose() {
 
 function copyEff(s, d) {
   d.pos.copy(s.pos); d.hint.copy(s.hint); d.hasHint = s.hasHint; d.palm.copy(s.palm); d.hasPalm = s.hasPalm;
-  d.q.copy(s.q); d.hasQ = s.hasQ; d.pivot.copy(s.pivot); d.hasPivot = s.hasPivot;
+  d.q.copy(s.q); d.hasQ = s.hasQ; d.pivot.copy(s.pivot); d.hasPivot = s.hasPivot; d.toes = s.toes;
 }
 
 export function copyPose(s, d) {
@@ -77,6 +78,7 @@ export function resolvePose(spec = {}, out = createPose(), base = null) {
       F.hasQ = true;
       if (f?.rot) eulerQ(f.rot, F.q); else if (f?.pos) F.q.identity(); else F.q.copy(out.pelvisQ);
       F.hasPivot = !!f?.pivot; if (f?.pivot) F.pivot.fromArray(f.pivot);
+      F.toes = f?.toes || 0;
     }
   });
   return out;
@@ -108,6 +110,7 @@ function lerpEff(A, B, M, u, O) {
   } else {
     lerpV(A.pos, B.pos, M?.pos, u, O.pos); O.hasPivot = false;
   }
+  O.toes = M ? (u < 0.5 ? A.toes + (M.toes - A.toes) * u * 2 : M.toes + (B.toes - M.toes) * (u * 2 - 1)) : A.toes + (B.toes - A.toes) * u;
   O.hasHint = A.hasHint || B.hasHint;
   if (A.hasHint && B.hasHint) lerpV(A.hint, B.hint, M?.hasHint ? M.hint : null, u, O.hint);
   else if (O.hasHint) O.hint.copy(A.hasHint ? A.hint : B.hint);

@@ -29,7 +29,12 @@ function thrust(alpha, dz = 0) {
   const a = alpha * D2R, c = Math.cos(a), s = Math.sin(a);
   const y = BENCH_FLAT.top - 0.1 * s - 0.33 * c;
   const z = HIP_THRUST.benchEdge + 0.1 * c - 0.33 * s + dz;
-  return { pelvis: [0, r4(y), r4(z)], rot: [alpha, 0, 0], bar: [r4(y - 0.02 * c - 0.15 * s), r4(z - 0.02 * s + 0.15 * c)] };
+  // (step 05) The 55 mm foam pad RESTS in the hip crease: its axis sits pad radius + ≈ 7 mm above the lowest point of
+  // the lap between the thighs and the belly, which is 4 cm in front of the pelvis joint at every angle. The flexed
+  // thighs rise at the bottom, so the bar is 157 mm above the pelvis at lockout and 217 mm at the bottom (measured on
+  // the skinned body: tmp/fig/scripts/fix1/barprobe.mjs hip_thrust <t>; anims.test.mjs checks the clearance).
+  const f = Math.min(1, Math.max(0, (alpha + 90) / 40));            // 0 at lockout (−90°) … 1 at the bottom (−50°)
+  return { pelvis: [0, r4(y), r4(z)], rot: [alpha, 0, 0], bar: [r4(y + 0.157 + 0.06 * f), r4(z + 0.04)] };
 }
 const THRUST_ANGLES = { top: -90, mid: -70, bottom: -50 };
 
@@ -111,20 +116,20 @@ export default [
     arrow: { effector: 'handsMid', offset: [0.36, 0, 0.06] },
     poses: {
       top: {
-        pelvis: { pos: [0, 0.965, 0], rot: [0, 0, 0] },
+        pelvis: { pos: [0, 0.965, 0], rot: [4, 0, 0] },   // (step 05) 4° hinge already at lockout: the shoulders over the bar, which rests ON the thighs
         spine: [0, 0, 0], chest: [-2, 0, 0], neck: [0, 0, 0],
         clavicle_L: [0, -4, -2], clavicle_R: [0, -4, -2],         // shoulders packed back & down
         // Bar on the upper thighs, overhand grip just outside the legs: palms face back (−Z).
-        hand_L: { pos: [0.235, 0.8, 0.12], palm: [0, 0, -1], hint: [0.45, 1.0, -0.5] },
-        hand_R: { pos: [-0.235, 0.8, 0.12], palm: [0, 0, -1], hint: [-0.45, 1.0, -0.5] },
+        hand_L: { pos: [0.235, 0.8, 0.138], palm: [0, 0, -1], hint: [0.45, 1.0, -0.5] },   // (step 05) z +18 mm: bar on the thighs, not 1–2 cm in them
+        hand_R: { pos: [-0.235, 0.8, 0.138], palm: [0, 0, -1], hint: [-0.45, 1.0, -0.5] },
         foot_L: { pos: [0.13, 0, 0.0], rot: [0, 6, 0], hint: [0.18, 0.5, 1] },
         foot_R: { pos: [-0.13, 0, 0.0], rot: [0, -6, 0], hint: [-0.18, 0.5, 1] },
       },
       mid: {
         // Half-way: the hips have already travelled back (hinge leads), bar just above and in front of the knee caps.
         pelvis: { pos: [0, 0.905, -0.21], rot: [60, 0, 0] },
-        hand_L: { pos: [0.235, 0.585, 0.075], palm: [0, 0, -1], hint: [0.45, 0.8, -0.6] },
-        hand_R: { pos: [-0.235, 0.585, 0.075], palm: [0, 0, -1], hint: [-0.45, 0.8, -0.6] },
+        hand_L: { pos: [0.235, 0.585, 0.08], palm: [0, 0, -1], hint: [0.45, 0.8, -0.6] },
+        hand_R: { pos: [-0.235, 0.585, 0.08], palm: [0, 0, -1], hint: [-0.45, 0.8, -0.6] },
       },
       bottom: {
         // Hips back ~27 cm, torso ~6° above horizontal, neutral spine, knees ~30°, shins slightly back; the bar
@@ -237,7 +242,9 @@ export default [
     id: 'seated_leg_curl',
     machine: 'seated_leg_curl',
     movers: CURL_MOVERS,
-    camera: { target: [0, 0.78, 0.1], front: [2.3, 1.6, 2.9], side: [3.2, 1.2, 0.3] },
+    // (step 05) low cameras: the hamstrings work under the thighs; from the usual height only the seam at the seat edge
+    // glowed — level with the seat the outer back of the thigh (biceps femoris) and the curling shin read
+    camera: { target: [0, 0.72, 0.1], front: [2.3, 1.45, 2.9], side: [3.2, 0.7, 0.2], threeQuarter: [2.8, 0.68, 2.1] },
     tempo: { eccentric: 2.6, bottom: 0.3, concentric: 1.0, top: 0.6 },
     arrow: { effector: 'feetMid', offset: [0.3, 0, 0] },
     poses: {

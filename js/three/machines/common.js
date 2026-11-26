@@ -105,7 +105,9 @@ function bench_adjustable(opts = {}) {
   // Back pad: rotate about X by the incline so its −Z end rises.
   const back = rbox(w, t, backLen, M.upholstery, 0, 0, 0, 0.028);
   back.rotation.x = th;
-  back.position.copy(F.hinge).addScaledVector(F.dir, 0.02 + backLen / 2).addScaledVector(F.normal, -t / 2);
+  // (step 05) both pads sit 15 mm lower than the frame's surface line: the body is posed against that line and sank
+  // 30–35 mm into them (upper back on the incline, thighs on the tilted seat); a firm cushion gives ≈ 15–20 mm
+  back.position.copy(F.hinge).addScaledVector(F.dir, 0.02 + backLen / 2).addScaledVector(F.normal, -t / 2 - 0.015);
   g.add(back);
   const backBoard = rbox(w - 0.03, 0.016, backLen - 0.04, M.frame, 0, 0, 0, 0.004);
   backBoard.rotation.x = th;
@@ -115,7 +117,7 @@ function bench_adjustable(opts = {}) {
   const seatN = V(0, Math.cos(a), -Math.sin(a)), seatD = V(0, Math.sin(a), Math.cos(a));
   const seat = rbox(w, t, 0.38, M.upholstery, 0, 0, 0, 0.028);
   seat.rotation.x = -a;
-  seat.position.copy(F.hinge).addScaledVector(seatD, 0.2).addScaledVector(seatN, -t / 2);
+  seat.position.copy(F.hinge).addScaledVector(seatD, 0.2).addScaledVector(seatN, -t / 2 - 0.025);   // 25 mm: the thighs press on its lifted front edge
   g.add(seat);
   // Frame: floor rail, seat post, adjustment strut + ladder under the back pad.
   g.add(beam(V(0, 0.1, -0.6), V(0, 0.1, 0.42), 0.075, M.frame, 0.05));

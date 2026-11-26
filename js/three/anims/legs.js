@@ -229,7 +229,7 @@ function legPressCalf() {
     const sl = soleAt(bisect(gap, angOf(bot), angOf(top)));
     return { pitch, sole: (s) => [s * sl[0], sl[1], sl[2]] };
   })();
-  const feet = (st) => both('foot', (s) => ({ pos: r(st.sole(s)), rot: [st.pitch, 0, 0], hint: [s * 0.2, 1.45, 0.05] }));
+  const feet = (st) => both('foot', (s) => ({ pos: r(st.sole(s)), rot: [st.pitch, 0, 0], toes: +(st.pitch - LP_FLAT).toFixed(2), hint: [s * 0.2, 1.45, 0.05] }));   // toes flat on the plate
   return {
     id: 'leg_press_calf',
     machine: 'leg_press',
@@ -277,7 +277,7 @@ function legExtension() {
 function bulgarianSplitSquat() {
   const zEnd = -0.56;                                  // foot end of the bench, behind the lifter
   const rear = { pitch: 172, sole: null };
-  rear.sole = footAt([-0.11, BENCH_FLAT.top, zEnd - 0.09], INSTEP, rear.pitch);  // laces on the pad
+  rear.sole = footAt([-0.11, BENCH_FLAT.top + 0.02, zEnd - 0.09], INSTEP, rear.pitch);  // laces on the pad (step 05: +2 cm, the instep sank into it)
   const pz = 0.0;
   const legs = splitLegs({ front: [0.12, 0, 0.36], rear, pz, yBottom: 0.56, frontFlex: 14, rearFlex: 60 });
   const lean = { top: 10, bottom: 16 };                // trunk slightly forward
@@ -348,12 +348,12 @@ function standingCalfRaise() {
   const pz = (ankle(TOP)[2] + ankle(BOTTOM)[2]) / 2;   // legs sway ±2–3° around vertical
   const pelvisAt = (phi) => [0, hipHeight(ankle(phi), pz, span), pz];
   const pelTop = pelvisAt(TOP), pelBot = pelvisAt(BOTTOM), pelMid = pelvisAt((TOP + BOTTOM) / 2);
-  const pad = onTorso(pelTop, lean, [0, 0.525, -0.02]);  // shoulder-pad underside on top of the shoulders
+  const pad = onTorso(pelTop, lean, [0, 0.54, -0.02]);  // shoulder-pad underside on top of the shoulders (step 05: was 0.525, 15 mm into the traps)
   const rise = pelTop[1] - pelBot[1];
   const grip = (s, dy) => r([s * CALF_STAND.grip[0], pad[1] + CALF_STAND.grip[1] + dy, pad[2] + CALF_STAND.grip[2]]);
   const hands = (dy) => both('hand', (s) => ({ pos: grip(s, dy), palm: [-s, 0, 0], hint: r([s * 0.45, pad[1] - 0.45 + dy, pad[2] - 0.1]) }));
   // The foot rolls over the ball (`pivot` = ball), so the ball stays planted on the step edge all the way.
-  const feet = (phi) => both('foot', (s) => ({ pos: r(footAt(ball(s), BALL, phi)), rot: [phi, 0, 0], hint: [s * 0.14, 0.6, 1.2], pivot: ball(s) }));
+  const feet = (phi) => both('foot', (s) => ({ pos: r(footAt(ball(s), BALL, phi)), rot: [phi, 0, 0], toes: phi, hint: [s * 0.14, 0.6, 1.2], pivot: ball(s) }));   // toes: flat on the step
   return {
     id: 'standing_calf_raise',
     machine: 'calf_raise',
@@ -400,7 +400,7 @@ function seatedCalfRaise() {
     pos: grip(s, th), palm: [-s, 0, 0], hint: [s * 0.5, 0.75, -0.2],
     pivot: [s * SEATED_CALF.grip[0], SEATED_CALF.pivot[1], SEATED_CALF.pivot[2]],  // hands ride the lever arc
   }));
-  const feet = (phi) => both('foot', (s) => ({ pos: r(footAt(ball(s), BALL, phi)), rot: [phi, 0, 0], hint: [s * 0.12, 1.2, 1.0], pivot: ball(s) }));
+  const feet = (phi) => both('foot', (s) => ({ pos: r(footAt(ball(s), BALL, phi)), rot: [phi, 0, 0], toes: phi, hint: [s * 0.12, 1.2, 1.0], pivot: ball(s) }));   // toes: flat on the plate
   return {
     id: 'seated_calf_raise',
     machine: 'seated_calf',

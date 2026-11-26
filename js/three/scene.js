@@ -1,4 +1,9 @@
 // Studio stage: environment lighting, key/fill/rim lights with soft shadows, floor disc and baked contact shadow.
+// LIGHT BALANCE (tuned on the clay figure at phone size, tmp/fig/NOTES.md step 04b): the key carries the picture;
+// environment, hemisphere and fill together are kept at about a third of it, so that a form turning away from the key
+// goes visibly darker — on a light clay body that shading IS the muscle relief. (With twice the ambient light, the
+// values until 2026-11, the figure was a white silhouette.) The machines keep their look: dark paint and steel take
+// their brightness from the key and the rim.
 // The background itself is a CSS gradient behind the transparent canvas (see explainer.js THEMES).
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
@@ -27,25 +32,31 @@ export function createStage(scene, renderer, { shadows = true, theme }) {
   room.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } });
   pmrem.dispose();
   scene.environment = envRT.texture;
-  scene.environmentIntensity = 0.55;
+  scene.environmentIntensity = 0.28;
   disposables.push(envRT);
 
   // Key: warm, high front-left, casts the soft shadow.
   const key = new THREE.DirectionalLight(0xfff1e2, 2.4);
-  key.position.set(2.2, 4.2, 2.8);
+  key.userData.offset = new THREE.Vector3(2.2, 4.2, 2.8);   // from the subject's place on the floor
+  key.position.copy(key.userData.offset);
   key.castShadow = shadows;
   key.shadow.mapSize.set(2048, 2048);
-  key.shadow.radius = 5;
+  // penumbra of 3 texels (≈ 6 mm): three's PCF takes 5 samples on a noise-rotated disc, and at 5 texels that noise
+  // showed as grain on the body under the darker ambient of step 04b (tmp/fig/mh02/shape/r3/z_shadow_cmp.png)
+  key.shadow.radius = 3;
   key.shadow.bias = -0.0004;
   key.shadow.normalBias = 0.025;
   Object.assign(key.shadow.camera, { left: -2.2, right: 2.2, top: 2.6, bottom: -1.2, near: 0.5, far: 12 });
   key.shadow.camera.updateProjectionMatrix();
   // Fill: cool and soft from the other side; rim: strong from behind to separate the silhouette from the backdrop.
-  const fill = new THREE.DirectionalLight(0xcfe0ff, 0.65);
-  fill.position.set(-3, 2.0, 1.5);
-  const rim = new THREE.DirectionalLight(0xbfd4ff, 1.6);
-  rim.position.set(-1.5, 3.2, -3.5);
-  const hemi = new THREE.HemisphereLight(0xdfe8ff, 0x3a3530, 0.35);
+  const fill = new THREE.DirectionalLight(0xcfe0ff, 0.38);
+  fill.userData.offset = new THREE.Vector3(-3, 2.0, 1.5);
+  fill.position.copy(fill.userData.offset);
+  const rim = new THREE.DirectionalLight(0xbfd4ff, 1.5);
+  rim.userData.offset = new THREE.Vector3(-1.5, 3.2, -3.5);
+  rim.position.copy(rim.userData.offset);
+  const hemi = new THREE.HemisphereLight(0xdfe8ff, 0x3a3530, 0.19);
+  key.name = 'light:key'; fill.name = 'light:fill'; rim.name = 'light:rim'; hemi.name = 'light:hemi';   // (webapp/dev/tune.js finds them by name)
   const target = new THREE.Object3D();
   key.target = target; fill.target = target; rim.target = target;
   scene.add(key, fill, rim, hemi, target);
@@ -78,9 +89,7 @@ export function createStage(scene, renderer, { shadows = true, theme }) {
     /** Centre the lights' shadow frustum and the contact shadow on the subject. */
     setFocus(x, z, radius = 0.6) {
       target.position.set(x, 0.6, z);
-      key.position.set(x + 2.2, 4.2, z + 2.8);
-      fill.position.set(x - 3, 2.0, z + 1.5);
-      rim.position.set(x - 1.5, 3.2, z - 3.5);
+      for (const l of [key, fill, rim]) l.position.set(x + l.userData.offset.x, l.userData.offset.y, z + l.userData.offset.z);
       contact.position.set(x, 0.001, z);
       contact.scale.set(radius * 2.4, radius * 2.4, 1);
     },

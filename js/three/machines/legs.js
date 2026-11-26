@@ -86,8 +86,8 @@ function handle(g, grip, dir, mount, M) {
   const d = dir.clone().normalize();
   const a = grip.clone().addScaledVector(d, -0.12), b = grip.clone().addScaledVector(d, 0.085);
   g.add(rod(mount, a, 0.016, M.steel), rod(a, b, 0.016, M.steel));
-  g.add(rod(grip.clone().addScaledVector(d, -0.07), grip.clone().addScaledVector(d, 0.075), 0.021, M.rubber));
-  const cap = mesh(new THREE.CylinderGeometry(0.023, 0.023, 0.012, 16), M.rubber);
+  g.add(rod(grip.clone().addScaledVector(d, -0.07), grip.clone().addScaledVector(d, 0.075), 0.0165, M.rubber));   // (step 05) r 16.5 mm (was 21): inside the fist's tunnel
+  const cap = mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.012, 16), M.rubber);
   cap.quaternion.setFromUnitVectors(_up, d); cap.position.copy(b); g.add(cap);
 }
 
@@ -260,8 +260,8 @@ function leg_press(opts = {}) {
   const pan = new THREE.Group();
   pan.position.fromArray(LEG_PRESS.hip);
   pan.rotation.x = -40 * D2R;
-  pan.add(rbox(0.42, 0.07, 0.34, M.upholstery, 0, -0.135, 0.05, 0.03));
-  pan.add(rbox(0.38, 0.02, 0.3, M.frame, 0, -0.18, 0.05, 0.005));
+  pan.add(rbox(0.42, 0.07, 0.34, M.upholstery, 0, -0.15, 0.05, 0.03));   // (step 05) 15 mm lower: the thighs sank 31 mm
+  pan.add(rbox(0.38, 0.02, 0.3, M.frame, 0, -0.195, 0.05, 0.005));
   g.add(pan);
   const hip = VA(LEG_PRESS.hip);
   const backLow = hip.clone().add(V(0, -0.2, -0.28)), backHigh = hip.clone().add(V(0, 0.28, -0.72));
@@ -338,7 +338,7 @@ function leg_extension(opts = {}) {
     g.add(beam(V(-0.62, 0.04, z), V(0.25, 0.04, z), 0.08, M.frame, 0.06));
     for (const x of [-0.6, 0.25]) g.add(footPad(M, x, z));
   }
-  g.add(rbox(0.4, 0.08, 0.5, M.upholstery, 0, LEG_EXT.seat - 0.04, 0.11, 0.03));
+  g.add(rbox(0.4, 0.08, 0.5, M.upholstery, 0, LEG_EXT.seat - 0.052, 0.11, 0.03));   // (step 05) top 12 mm under LEG_EXT.seat: 26 mm sink → ≈ 14
   g.add(rbox(0.34, 0.03, 0.44, M.frame, 0, LEG_EXT.seat - 0.095, 0.11, 0.006));
   g.add(beam(V(0, 0.06, 0.11), V(0, LEG_EXT.seat - 0.11, 0.11), 0.08, red));
   const back = new THREE.Group();

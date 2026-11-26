@@ -2,13 +2,13 @@
 import { EXERCISES } from '../data/exercises.js';
 import { PROGRAM } from '../data/program.js';
 import { workoutSummary } from '../analytics.js';
-import { getWorkout, finishedWorkouts, getProfile } from '../storage.js';
+import { getWorkout, finishedWorkouts, getProfile, pendingSync } from '../storage.js';
 import { canSendToBot } from '../telegram.js';
 import { html, raw, on, minutes, tonnage, dayLong, plural, num } from './dom.js';
 import { icon } from './icons.js';
 import { emptyState } from './components.js';
 import { bestSet, repsOnly, repsUnit, weightLabel, calibInfo } from './model.js';
-import { sendUnsynced, sendHint } from './profile.js';
+import { sendFrom, sendHint, alongText } from './profile.js';
 
 export const NAME = 'summary';
 
@@ -21,6 +21,13 @@ export function render(ctx) {
   const ci = calibInfo(getProfile(), all);
   const prIds = new Set(sum.prs.map((p) => p.exId));
   const canSend = canSendToBot();
+  // Одна отправка несёт всё неотправленное. Эта тренировка уходит первой (сразу за режимом), остальное — пока есть
+  // место: вместе с ней уйдут дни дневника и режим, если они ждут в очереди, а что не поместится — следующей отправкой.
+  const pend = pendingSync();
+  const queued = pend.workouts.some((x) => x.id === w.id);
+  const anyQueued = !!(pend.goal || pend.days.length || pend.workouts.length);
+  const first = queued ? { ids: [w.id] } : null;
+  const along = canSend ? alongText(pend, first || {}, 'ней') : '';
 
   root.innerHTML = html`
     <section class="hero-done">
@@ -53,11 +60,13 @@ export function render(ctx) {
     </section>
 
     <section class="card send">
-      <div class="send-top">${raw(icon('send', 22))}<div><h3>Отправить тренеру в бот</h3><p>${canSend ? 'Бот проанализирует тренировку и даст советы. Приложение закроется после отправки.' : sendHint()}</p></div></div>
-      ${canSend ? html`<button class="btn btn-primary" data-act="send">${raw(icon('send', 20))} Отправить в бот</button>` : ''}
+      <div class="send-top">${raw(icon('send', 22))}<div><h3>Отправить тренеру в бот</h3><p>${!canSend ? sendHint()
+        : !anyQueued ? 'Тренировка уже у тренера — отправлять нечего.'
+          : `${queued ? 'Бот проанализирует тренировку и даст советы.' : 'Эта тренировка уже отправлена.'}${along ? ` ${along}` : ''} Приложение закроется после отправки.`}</p></div></div>
+      ${canSend ? html`<button class="btn btn-primary" data-act="send" ${anyQueued ? '' : 'disabled'}>${raw(icon('send', 20))} Отправить в бот</button>` : ''}
     </section>
     <div class="cta-spacer"></div>
     <div class="cta-dock"><button class="btn btn-secondary btn-xl" data-nav="#/today">Готово</button></div>`.s;
 
-  ctx.cleanup(on(root, 'click', '[data-act="send"]', () => sendUnsynced()));
+  ctx.cleanup(on(root, 'click', '[data-act="send"]', (e, b) => { sendFrom(b, first); }));
 }

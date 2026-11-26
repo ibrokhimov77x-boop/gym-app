@@ -202,5 +202,187 @@ export function calendarHeatmap(days, { width = 340, cell = 17, gap = 4 } = {}) 
   return wrap;
 }
 
+// ───────── Графики по дням (дневник: вес, калории, белок, сон) ─────────
+// Общая ось: по одному слоту на календарный день и одинаковые поля у всех трёх видов — один и тот же день стоит
+// на одной вертикали на всех графиках экрана. rows — по строке на каждый день периода; rows[i].tip =
+// [главная строка, подпись] — подсказка по тапу (день без tip пропускается, берётся ближайший);
+// xLabels = [[индекс дня, текст, 'start' | 'middle' | 'end'], …] — подписи под осью.
+
+const DL = 38, DR = 8, DT = 12, DB = 24;
+
+function dayFrame(cls, n, height, width) {
+  const { wrap, showTip, hideTip } = frame(`chart-days ${cls}`, height);
+  const svg = el('svg', { viewBox: `0 0 ${width} ${height}`, width: '100%', height, preserveAspectRatio: 'none', role: 'img' });
+  const slot = (width - DL - DR) / Math.max(n, 1);
+  return { wrap, showTip, hideTip, svg, W: width, H: height, slot, sx: (i) => DL + slot * (i + 0.5) };
+}
+
+function dayAxes({ svg, W, H, slot }, yt, sy, fmt, xLabels) {
+  for (const v of yt) {
+    el('line', { x1: DL, x2: W - DR, y1: sy(v), y2: sy(v), class: 'grid' }, svg);
+    el('text', { x: DL - 7, y: sy(v) + 3.5, class: 'axis', 'text-anchor': 'end' }, svg).textContent = fmt(v);
+  }
+  for (const [i, text, anchor = 'middle'] of xLabels) {
+    const x = anchor === 'start' ? DL : anchor === 'end' ? W - DR : DL + slot * (i + 0.5);
+    el('text', { x, y: H - 6, class: 'axis', 'text-anchor': anchor }, svg).textContent = text;
+  }
+}
+
+/** Подсказка по тапу и ведению пальцем: ближайший день с данными. markOf(i) — элемент, который подсветить. */
+function dayTips({ svg, wrap, showTip, hideTip, W, H, slot, sx }, rows, anchorY, markOf, guide = null) {
+  const n = rows.length;
+  const pick = (e) => {
+    const r = svg.getBoundingClientRect();
+    const px = ((e.clientX - r.left) / r.width) * W;
+    let i = Math.min(n - 1, Math.max(0, Math.floor((px - DL) / slot)));
+    if (!rows[i].tip) {
+      let best = -1;
+      for (let k = 0; k < n; k++) if (rows[k].tip && (best < 0 || Math.abs(k - i) < Math.abs(best - i))) best = k;
+      if (best < 0) return;
+      i = best;
+    }
+    wrap.querySelectorAll('.is-active').forEach((x) => x.classList.remove('is-active'));
+    if (guide) { guide.setAttribute('x1', sx(i)); guide.setAttribute('x2', sx(i)); guide.classList.add('is-active'); }
+    markOf(i)?.classList.add('is-active');
+    showTip(sx(i) * (r.width / W), anchorY(i) * (r.height / H), `<b>${esc(rows[i].tip[0])}</b><span>${esc(rows[i].tip[1])}</span>`, r.width);
+  };
+  svg.addEventListener('pointerdown', pick);
+  svg.addEventListener('pointermove', (e) => { if (e.buttons || e.pointerType === 'mouse') pick(e); });
+  svg.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') hideTip(); });
+}
+
+/**
+ * Точки-замеры и сглаженная линия по дням (вес и его среднее за 7 дней).
+ * rows: [{ dot: number|null, line: number|null, tip? }] — dot рисуется точкой, line соединяется линией (на null рвётся).
+ * opts: { height, width, xLabels, ref: { y, label } — горизонтальная отметка, например целевой вес }
+ */
+export function dayLineChart(rows, { height = 180, width = 340, xLabels = [], ref = null } = {}) {
+  const f = dayFrame('chart-dayline', rows.length, height, width);
+  const vals = [];
+  for (const r of rows) { if (r.dot != null) vals.push(r.dot); if (r.line != null) vals.push(r.line); }
+  if (!vals.length) return f.wrap;
+  const { svg, W, H, sx } = f;
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  // Отметку показываем, только если она рядом с данными: далёкая цель сплющила бы график.
+  const near = Math.max((hi - lo) * 0.6, 0.5);
+  const showRef = !!ref && ref.y != null && ref.y > lo - near && ref.y < hi + near;
+  if (showRef) { lo = Math.min(lo, ref.y); hi = Math.max(hi, ref.y); }
+  const pad = Math.max((hi - lo) * 0.1, 0.15);
+  const yt = ticks(lo - pad, hi + pad, 3);
+  const y0 = yt[0], y1 = yt[yt.length - 1];
+  const step = Math.round((yt[1] - yt[0]) * 100) / 100;
+  const digits = Number.isInteger(step) ? 0 : Number.isInteger(Math.round(step * 100) / 10) ? 1 : 2;
+  const sy = (y) => DT + (1 - (y - y0) / (y1 - y0 || 1)) * (H - DT - DB);
+  dayAxes(f, yt, sy, (v) => num(v, digits), xLabels);
+  if (showRef) {
+    el('line', { x1: DL, x2: W - DR, y1: sy(ref.y), y2: sy(ref.y), class: 'ref' }, svg);
+    if (ref.label) el('text', { x: W - DR, y: sy(ref.y) - 5, class: 'ref-label', 'text-anchor': 'end' }, svg).textContent = ref.label;
+  }
+  let d = '', pen = false;
+  rows.forEach((r, i) => {
+    if (r.line == null) { pen = false; return; }
+    d += `${pen ? 'L' : 'M'}${sx(i).toFixed(1)},${sy(r.line).toFixed(1)}`;
+    pen = true;
+  });
+  if (d) el('path', { d, class: 'line', pathLength: 1 }, svg);
+  const guide = el('line', { x1: 0, x2: 0, y1: DT, y2: H - DB, class: 'guide' }, svg);
+  const rad = rows.length > 45 ? 2 : 2.8;
+  const dots = rows.map((r, i) => (r.dot == null ? null
+    : el('circle', { cx: sx(i).toFixed(1), cy: sy(r.dot).toFixed(1), r: rad, class: 'pt', style: `animation-delay:${Math.min(200 + i * 12, 900)}ms` }, svg)));
+  f.wrap.appendChild(svg);
+  dayTips(f, rows, (i) => sy(rows[i].dot ?? rows[i].line ?? y0), (i) => dots[i], guide);
+  return f.wrap;
+}
+
+/**
+ * Столбики по дням с нормой (калории, белок, длительность сна).
+ * rows: [{ value: number|null, target?: number|null, cls?: 'ok'|'over'|'under'|'', tip? }] — норма рисуется
+ * пунктиром-ступеньками (у каждого дня своя), cls задаёт цвет столбика.
+ * opts: { height, width, xLabels, band — доля коридора вокруг нормы (0,1 = ±10 %), fmt — подписи делений,
+ *   step — шаг делений (по умолчанию подбирается сам) }
+ */
+export function dayBarChart(rows, { height = 150, width = 340, xLabels = [], band = 0, fmt = (v) => num(v, 0), step = 0 } = {}) {
+  const f = dayFrame('chart-daybars', rows.length, height, width);
+  let hi = 0;
+  for (const r of rows) hi = Math.max(hi, r.value ?? 0, (r.target ?? 0) * (1 + band));
+  if (!hi) return f.wrap;
+  const { svg, H, slot, sx } = f;
+  const yt = step > 0 ? Array.from({ length: Math.ceil((hi * 1.03) / step) + 1 }, (_, i) => i * step) : ticks(0, hi * 1.03, 3);
+  const y1 = yt[yt.length - 1];
+  const sy = (y) => DT + (1 - y / y1) * (H - DT - DB);
+  dayAxes(f, yt, sy, fmt, xLabels);
+  // Подряд идущие дни с одной нормой — один отрезок; при смене нормы — ступенька.
+  const runs = [];
+  rows.forEach((r, i) => {
+    if (r.target == null) return;
+    const last = runs[runs.length - 1];
+    if (last && last.b === i - 1 && last.t === r.target) last.b = i; else runs.push({ a: i, b: i, t: r.target });
+  });
+  let d = '';
+  runs.forEach((run, k) => {
+    const xa = DL + slot * run.a, xb = DL + slot * (run.b + 1);
+    if (band) {
+      const top = sy(run.t * (1 + band));
+      el('rect', { x: xa.toFixed(1), y: top.toFixed(1), width: (xb - xa).toFixed(1), height: (sy(run.t * (1 - band)) - top).toFixed(1), class: 'band' }, svg);
+    }
+    const joined = k > 0 && runs[k - 1].b === run.a - 1;
+    d += `${joined ? `V${sy(run.t).toFixed(1)}` : `M${xa.toFixed(1)},${sy(run.t).toFixed(1)}`}H${xb.toFixed(1)}`;
+  });
+  const bw = Math.max(1.5, Math.min(22, slot * 0.66));
+  const rects = rows.map((r, i) => {
+    if (r.value == null) return null;
+    const h = Math.max(2, (r.value / y1) * (H - DT - DB));
+    return el('rect', { x: (sx(i) - bw / 2).toFixed(1), y: (H - DB - h).toFixed(1), width: bw.toFixed(1), height: h.toFixed(1), rx: Math.min(5, bw / 2).toFixed(1),
+      class: `col ${r.cls || ''}`, style: `animation-delay:${Math.min(i * 14, 700)}ms` }, svg);
+  });
+  if (d) el('path', { d, class: 'target' }, svg);
+  f.wrap.appendChild(svg);
+  dayTips(f, rows, (i) => (rects[i] ? +rects[i].getAttribute('y') : H - DB), (i) => rects[i]);
+  return f.wrap;
+}
+
+/**
+ * Отрезки по дням на шкале времени суток (ночной сон: от отбоя до подъёма). Сверху вечер, снизу утро.
+ * rows: [{ from: минуты|null, to: минуты|null, cls?, tip? }] — минуты от полуночи этого дня; отбой до полуночи —
+ * отрицательные (23:30 → −30). Если известен только один конец, рисуется точка.
+ * opts: { height, width, xLabels, refs: [{ y }] — горизонтальные отметки (средние отбой и подъём) }
+ * Отметка вне шкалы не рисуется: шкала строится по самим отрезкам, и линия за её пределами легла бы поверх соседних
+ * графиков (у svg overflow: visible).
+ */
+export function dayRangeChart(rows, { height = 170, width = 340, xLabels = [], refs = [] } = {}) {
+  const f = dayFrame('chart-dayrange', rows.length, height, width);
+  const vals = [];
+  for (const r of rows) { if (r.from != null) vals.push(r.from); if (r.to != null) vals.push(r.to); }
+  if (!vals.length) return f.wrap;
+  const { svg, W, H, slot, sx } = f;
+  // Границы — по целым часам с небольшим запасом; деления — на «круглых» часах (00:00, 03:00, …). Шкала начинается
+  // и кончается на делении: иначе отбой в 23:25 рисовался выше верхней подписи «00:00» и по оси не читался.
+  const lo0 = Math.floor((Math.min(...vals) - 20) / 60) * 60, hi0 = Math.ceil((Math.max(...vals) + 20) / 60) * 60;
+  const stepMin = hi0 - lo0 > 600 ? 180 : hi0 - lo0 > 300 ? 120 : 60;
+  const lo = Math.floor(lo0 / stepMin) * stepMin, hi = Math.ceil(hi0 / stepMin) * stepMin;
+  const yt = [];
+  for (let v = lo; v <= hi; v += stepMin) yt.push(v);
+  const sy = (m) => DT + ((m - lo) / (hi - lo || 1)) * (H - DT - DB);
+  const clockLabel = (m) => { const x = ((m % 1440) + 1440) % 1440; return `${String(Math.floor(x / 60)).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}`; };
+  dayAxes(f, yt, sy, clockLabel, xLabels);
+  for (const ref of refs) {
+    if (ref.y == null || ref.y < lo || ref.y > hi) continue;
+    el('line', { x1: DL, x2: W - DR, y1: sy(ref.y), y2: sy(ref.y), class: 'ref' }, svg);
+  }
+  const bw = Math.max(1.5, Math.min(18, slot * 0.6));
+  const marks = rows.map((r, i) => {
+    const style = `animation-delay:${Math.min(i * 14, 700)}ms`;
+    if (r.from != null && r.to != null) {
+      const y = sy(r.from), h = Math.max(3, sy(r.to) - y);
+      return el('rect', { x: (sx(i) - bw / 2).toFixed(1), y: y.toFixed(1), width: bw.toFixed(1), height: h.toFixed(1), rx: Math.min(5, bw / 2).toFixed(1), class: `col range ${r.cls || ''}`, style }, svg);
+    }
+    const one = r.from ?? r.to;
+    return one == null ? null : el('circle', { cx: sx(i).toFixed(1), cy: sy(one).toFixed(1), r: Math.max(1.8, Math.min(3, bw / 2)), class: 'pt', style }, svg);
+  });
+  f.wrap.appendChild(svg);
+  dayTips(f, rows, (i) => sy(rows[i].from ?? rows[i].to ?? lo), (i) => marks[i]);
+  return f.wrap;
+}
+
 /** Ширина для графика внутри контейнера (до вставки в DOM берём ширину родителя). */
 export const chartWidth = (container) => Math.max(260, Math.round(container?.clientWidth || 340));

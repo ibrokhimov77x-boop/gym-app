@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createFigure } from './figure.js';
+import { getBodyData } from './body/loader.js';
 import { Animator } from './animator.js';
 import { createStage } from './scene.js';
 import { createProp } from './props.js';
@@ -50,8 +51,8 @@ const STAND = {
 };
 const BODY_POSE = {
   ...STAND,
-  hand_L: { pos: [0.36, 0.86, 0.03], palm: [-0.6, 0, 0.8], hint: [0.6, 1.2, -0.5] },
-  hand_R: { pos: [-0.36, 0.86, 0.03], palm: [0.6, 0, 0.8], hint: [-0.6, 1.2, -0.5] },
+  hand_L: { pos: [0.36, 0.86, 0.03], palm: [-0.25, 0, -0.97], hint: [0.6, 1.2, -0.5] },
+  hand_R: { pos: [-0.36, 0.86, 0.03], palm: [0.25, 0, -0.97], hint: [-0.6, 1.2, -0.5] },
   foot_L: { pos: [0.13, 0, 0.0], rot: [0, 8, 0] },
   foot_R: { pos: [-0.13, 0, 0.0], rot: [0, -8, 0] },
 };
@@ -87,13 +88,17 @@ export async function createExplainer(container, opts = {}) {
   const theme = THEMES[opts.theme] || THEMES.dark;
   const autoQuality = opts.autoQuality ?? quality === 'high';
   alive++;
+  // Start downloading the baked body right away, so the network runs while the renderer and the stage are set up
+  // (figure.loadBody() below awaits the same memoised promise and is the one that reports a failure).
+  getBodyData(quality).catch(() => {});
 
   // ── DOM / renderer ────────────────────────────────────────────────────────────────────────────────────────────
   const wrap = document.createElement('div');
   wrap.className = 'explainer3d';
   Object.assign(wrap.style, { position: 'absolute', inset: '0', overflow: 'hidden', background: cssBackdrop(theme), touchAction: 'none' });
   if (getComputedStyle(container).position === 'static') container.style.position = 'relative';
-  container.appendChild(wrap);
+  // The wrap joins the page only when the body is ready (below): until then the host's own loading state stays
+  // visible instead of an empty backdrop.
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
   let dpr = Math.min(window.devicePixelRatio || 1, quality === 'low' ? 1.25 : 2);
@@ -112,6 +117,14 @@ export async function createExplainer(container, opts = {}) {
   const stage = createStage(scene, renderer, { shadows: quality === 'high', theme });
   const figure = createFigure();
   scene.add(figure.root);
+  try { await figure.loadBody({ quality }); } catch (e) {
+    // Never leave a half-built explainer behind: free what exists and let the caller show its fallback.
+    stage.dispose(); figure.dispose();
+    if (--alive === 0) disposeMaterials();
+    renderer.dispose(); renderer.forceContextLoss(); wrap.remove();
+    throw e;
+  }
+  container.appendChild(wrap);
   const animator = new Animator(figure);
   const exGroup = new THREE.Group(); // machine + world-space props + cables + arrow live here
   scene.add(exGroup);
@@ -349,8 +362,9 @@ export async function createExplainer(container, opts = {}) {
     const r = renderer.domElement.getBoundingClientRect();
     ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     ray.setFromCamera(ndc, camera);
+    figure.updatePickBounds();
     const hit = ray.intersectObjects(figure.meshes, false)[0];
-    const id = hit?.object.userData.muscle;
+    const id = hit ? (hit.object.userData.muscle ?? figure.muscleAt(hit)) : null;
     if (id) tapCb(id);
   };
   renderer.domElement.addEventListener('pointerdown', onDown);

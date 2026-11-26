@@ -7,6 +7,14 @@ const loadModule = () => (modPromise ??= import('../three/explainer.js').catch((
 
 const lowEnd = () => (navigator.hardwareConcurrency || 8) <= 4 || (navigator.deviceMemory || 8) <= 3;
 
+/**
+ * Модель тела — готовый файл (webapp/assets/body/). Начинаем качать его сразу, параллельно с three.js: загрузчик
+ * маленький и three.js не тянет. Ошибку здесь не показываем — её сообщит createExplainer (он ждёт ту же загрузку).
+ */
+function preloadBody(quality) {
+  import('../three/body/loader.js').then((m) => m.getBodyData(quality)).catch(() => {});
+}
+
 function placeholder(container, text) {
   container.classList.remove('is-loading');
   container.classList.add('is-fallback');
@@ -30,9 +38,11 @@ export function mount3D(container, init) {
   const ready = (async () => {
     try {
       if (!window.WebGLRenderingContext) throw new Error('WebGL недоступен');
+      const quality = lowEnd() ? 'low' : 'high';
+      preloadBody(quality);
       const m = await loadModule();
       if (disposed) return null;
-      const inst = await m.createExplainer(container, { quality: lowEnd() ? 'low' : 'high' });
+      const inst = await m.createExplainer(container, { quality });
       if (disposed) { inst.dispose(); return null; }
       ex = inst;
       await init(inst);

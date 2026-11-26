@@ -1,17 +1,20 @@
 // Активная тренировка (#/workout) и просмотр/правка завершённой (#/w/<id>).
 // Каждый подход сохраняется сразу — тренировка переживает закрытие приложения.
 import { EXERCISES, MUSCLES } from '../data/exercises.js';
-import { PROGRAM } from '../data/program.js';
+import { PROGRAM, sessionById, nextIdxAfter, currentNextIdx, nextIdxPatch } from '../data/program.js';
 import { nextTarget, isPR, workingSets, duration, setScore } from '../analytics.js';
 import {
   getProfile, getState, getPrefs, getWorkout, activeWorkout, finishedWorkouts, saveWorkout, deleteWorkout,
   updateState, updateProfile, updatePrefs, markUnsynced,
 } from '../storage.js';
 import { haptic, setClosingConfirmation, hasNativeBack } from '../telegram.js';
-import { html, raw, on, clock, restLabel, dayLong, hhmm, minutes } from './dom.js';
+import { html, raw, on, clock, dayLong, hhmm, minutes } from './dom.js';
 import { icon } from './icons.js';
 import { openSheet, confirmSheet, toast, stepper, parseNum, emptyState, segmented } from './components.js';
-import { itemFor, targetLabel, prefill, bestSet, repsOnly, repsUnit, weightLabel, exerciseAvailable, calibInfo, WRIST, WRIST_WARMUP } from './model.js';
+import {
+  itemFor, targetLabel, prefill, bestSet, repsOnly, repsUnit, weightLabel, exerciseAvailable, calibInfo, WRIST, WRIST_WARMUP,
+  supersetPartner, afterWorkingSet, resumeCard, restHtml,
+} from './model.js';
 import { startRest, stopRest } from './rest.js';
 
 export const NAME = 'workout';
@@ -40,12 +43,6 @@ function beatsAll(hist, w, e, set) {
   return !cur || setScore(e.id, set, w.bw) > setScore(e.id, cur, w.bw) + 0.05;
 }
 
-/** Первая карточка, где запланированные подходы ещё не сделаны. */
-function firstOpen(w) {
-  const i = w.ex.findIndex((e) => workingSets(e).length < itemFor(w, e).sets);
-  return i < 0 ? w.ex.length - 1 : i;
-}
-
 export function render(ctx) {
   const edit = !!ctx.opts.edit;
   const w = edit ? getWorkout(ctx.params[0]) : activeWorkout();
@@ -55,15 +52,15 @@ export function render(ctx) {
       html`<button class="btn btn-primary" data-nav="#/today">На экран «Сегодня»</button>`)}`.s;
     return;
   }
-  if (ui.wid !== w.id) ui = { wid: w.id, open: firstOpen(w), drafts: {}, notes: {} };
+  if (ui.wid !== w.id) ui = { wid: w.id, open: resumeCard(w), drafts: {}, notes: {} };
   if (!edit) setClosingConfirmation(true);
 
   const profile = getProfile();
   const hist = historyBefore(w);
-  const session = PROGRAM.sessions[w.session];
+  const session = sessionById(w.session); // и старые тренировки (Верх A …) — с прежними названиями и назначениями
   const ctxFor = (e) => {
     const item = itemFor(w, e, profile.restDefault);
-    const target = nextTarget(hist, { ...item, exId: e.from || e.id }, e.id);
+    const target = nextTarget(hist, { ...item, exId: e.from || e.id }, e.id, !!w.calib);
     return { item, target };
   };
   const planned = w.ex.reduce((a, e) => a + Math.max(itemFor(w, e).sets, workingSets(e).length), 0);
@@ -91,7 +88,7 @@ export function render(ctx) {
     ${w.calib && !edit ? html`<div class="tip">${raw(icon('target', 18))}<p>Подбирай вес так, чтобы оставалось <b>2–3 повтора в запасе</b>. Разминочные подходы тоже записывай с отметкой «Разминка».</p></div>` : ''}
     ${!started && !edit ? html`<details class="card warmup"><summary>${raw(icon('hand', 20))}<span><b>Разминка запястий · 2 мин</b><small>Старый перелом — начинаем бережно</small></span>${raw(icon('down', 18))}</summary><ol>${WRIST_WARMUP.map((s) => html`<li>${s}</li>`)}</ol></details>` : ''}
 
-    <div class="wcards">${w.ex.map((e, i) => card(w, e, i, ctxFor(e), hist))}</div>
+    <div class="wcards">${w.ex.map((e, i) => card(w, e, i, ctxFor(e), hist, pairOf(w, i)))}</div>
 
     <button class="add-ex" data-act="add-ex">${raw(icon('plus', 20))} Добавить упражнение</button>
     ${w.note ? html`<div class="card note-card">${raw(icon('note', 18))}<p>${w.note}</p></div>` : ''}
@@ -167,21 +164,19 @@ export function render(ctx) {
         const pr = !set.warm && beatsAll(hist, w, e, set);
         e.sets.push(set);
         save();
-        const { item } = ctxFor(e);
         // После разминки следующий подход снова предзаполняется целью, после рабочего — повтором этого подхода.
         if (set.warm) delete ui.drafts[i]; else ui.drafts[i] = { ...set, warm: false };
         if (pr) { haptic.success(); toast(`Новый рекорд: ${setText(e.id, set)}!`, 'good'); } else haptic.medium();
-        // Переход к следующему упражнению, когда план выполнен
-        const workSets = workingSets(e).length;
-        let nextLabel = `${EXERCISES[e.id]?.short || ''}, подход ${workSets + 1}`;
-        const advance = !set.warm && workSets === item.sets && i < w.ex.length - 1;
-        if (advance) {
-          ui.open = i + 1;
-          nextLabel = EXERCISES[w.ex[i + 1].id]?.short || '';
-        }
-        if (!edit && getProfile().autoRest) startRest(set.warm ? 60 : item.rest, nextLabel);
+        // Куда дальше: в суперсете — к партнёру, план пункта выполнен — к следующему упражнению.
+        // Разминочный подход карточку не переключает (отдых 60 с).
+        const move = set.warm
+          ? { open: i, rest: 60, label: `${EXERCISES[e.id]?.short || ''}, подход ${workingSets(e).length + 1}` }
+          : afterWorkingSet(w, i, profile.restDefault);
+        const moved = move.open !== i;
+        if (moved) ui.open = move.open;
+        if (!edit && getProfile().autoRest) startRest(move.rest, move.label);
         ctx.refresh();
-        if (advance) document.querySelector('.wcard.open')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (moved) document.querySelector('.wcard.open')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         break;
       }
       case 'edit-set': editSet(ctx, w, i, +b.dataset.s, save); break;
@@ -208,7 +203,13 @@ export function render(ctx) {
   ctx.cleanup(on(root, 'input', '[data-note]', (ev, t) => { w.ex[+t.dataset.note].note = t.value; save(); }));
 }
 
-function card(w, e, i, { item, target }, hist) {
+/** Суперсет карточки для заголовка: { label: 'А1', first, partnerShort } или null. */
+function pairOf(w, i) {
+  const p = supersetPartner(w, i);
+  return p && { label: p.label, first: p.first, partnerShort: EXERCISES[w.ex[p.j].id]?.short || '' };
+}
+
+function card(w, e, i, { item, target }, hist, pair) {
   const ex = EXERCISES[e.id] || { name: e.id };
   const ws = workingSets(e);
   const open = ui.open === i;
@@ -220,8 +221,8 @@ function card(w, e, i, { item, target }, hist) {
     <header class="wcard-head tap" data-act="toggle" data-i="${i}">
       <span class="ex-num">${complete ? raw(icon('check', 16)) : i + 1}</span>
       <div class="wcard-title">
-        <h3>${ex.name}</h3>
-        <p>${item.extra ? 'дополнительно · ' : ''}${item.sets} × ${item.reps[0]}–${item.reps[1]} · RIR ${item.rir[0]}–${item.rir[1]} · ${restLabel(item.rest)}${e.from ? html` · <span class="accent-text">вместо ${EXERCISES[e.from]?.short || e.from}</span>` : ''}</p>
+        <h3>${pair ? html`<span class="badge accent">${pair.label}</span> ` : ''}${ex.name}</h3>
+        <p>${item.extra ? 'дополнительно · ' : ''}${item.sets} × ${item.reps[0]}–${item.reps[1]} · RIR ${item.rir[0]}–${item.rir[1]} · ${restHtml(item, pair, pair?.partnerShort, '')}${e.from ? html` · <span class="accent-text">вместо ${EXERCISES[e.from]?.short || e.from}</span>` : ''}</p>
       </div>
       <span class="wcard-count">${ws.length}/${item.sets}</span>
     </header>
@@ -356,7 +357,7 @@ function swapSheet(ctx, w, i, save) {
       on(el, 'click', '[data-id]', (ev, b) => {
         const alt = b.dataset.id;
         if (e.sets.length) {
-          w.ex.splice(i + 1, 0, { id: alt, from: e.id, note: '', sets: [] });
+          w.ex.splice(i + 1, 0, { id: alt, from: alt === base ? null : base, note: '', sets: [] }); // from — упражнение по плану
           ui.open = i + 1;
         } else {
           e.id = alt;
@@ -462,8 +463,9 @@ function finishSheet(ctx, w) {
         w.end = new Date().toISOString();
         saveWorkout(w);
         markUnsynced(w.id);
-        const idx = PROGRAM.rotation.indexOf(w.session);
-        updateState({ activeWorkoutId: null, nextIdx: ((idx < 0 ? getState().nextIdx : idx) + 1) % PROGRAM.rotation.length });
+        // Следующая — после этой тренировки, и для старой тоже: после «Верх A/B» — «Низ», после «Низ A/B» — «Руки и плечи».
+        const after = nextIdxAfter(w.session) ?? currentNextIdx(getState(), finishedWorkouts()) + 1;
+        updateState({ activeWorkoutId: null, ...nextIdxPatch(after) });
         const ci = calibInfo(getProfile(), finishedWorkouts());
         if (!getProfile().calibrationDone && ci.count >= ci.total) updateProfile({ calibrationDone: true });
         stopRest();

@@ -91,6 +91,31 @@ export function toast(msg, type = '') {
   toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
 }
 
+// ───────── Плашка с действием ─────────
+
+let snackTimer;
+/**
+ * Плашка внизу экрана с одной кнопкой — например «День очищен · Отменить». Стоит над нижней панелью (в зоне
+ * большого пальца), живёт ms миллисекунд; действие срабатывает один раз. Возвращает функцию, которая её убирает.
+ */
+export function snackbar(msg, { action = '', onAction = null, ms = 7000 } = {}) {
+  let el = document.querySelector('.snack');
+  if (!el) { el = document.createElement('div'); el.className = 'snack'; el.setAttribute('role', 'status'); root().appendChild(el); }
+  el.innerHTML = `<span>${esc(msg)}</span>${action ? `<button class="snack-btn">${icon('undo', 18)}${esc(action)}</button>` : ''}`;
+  const hide = () => { clearTimeout(snackTimer); el.classList.remove('show'); };
+  const btn = el.querySelector('button');
+  if (btn) btn.onclick = () => { hide(); onAction?.(); };
+  // Над тем, что сейчас закреплено внизу: док с главной кнопкой или нижняя навигация.
+  const base = [...document.querySelectorAll('.cta-dock, .tabbar')]
+    .filter((n) => !n.hidden && getComputedStyle(n).position === 'fixed')
+    .reduce((h, n) => Math.max(h, window.innerHeight - n.getBoundingClientRect().top), 0);
+  el.style.bottom = `${Math.max(base, 0) + 10}px`;
+  requestAnimationFrame(() => el.classList.add('show'));
+  clearTimeout(snackTimer);
+  snackTimer = setTimeout(hide, ms);
+  return hide;
+}
+
 // ───────── Разметка ─────────
 
 /** Шапка вложенного экрана. Своя кнопка «Назад» — только вне Telegram (там есть нативная). */

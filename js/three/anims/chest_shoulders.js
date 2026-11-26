@@ -316,7 +316,7 @@ export default [
     // line of the body; the shoulder blades move only a little (rear delts, not the mid back, do the work).
     id: 'reverse_pec_deck',
     machine: 'pec_deck',
-    machineOpts: { ...RPD, hand: RPD_TOP, handRest: RPD_BOTTOM },
+    machineOpts: { ...RPD, hand: RPD_TOP, handRest: RPD_BOTTOM, back: [0.14, 0.52] },   // chest pad ends at the upper sternum
     movers: driveMovers('hand_L'),
     // Default view from behind and above: both arms visible over the head and shoulders.
     camera: { target: [0, 1.0, -0.2], front: [0.35, 2.75, 2.65], side: [3.1, 1.7, -0.25], threeQuarter: [1.75, 3.0, 1.55] },

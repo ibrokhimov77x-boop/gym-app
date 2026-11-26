@@ -509,7 +509,7 @@ export const EXERCISES = {
       mistakes: ['Отрыв пяток.', 'Колени заваливаются внутрь.', 'Таз отрывается от спинки внизу.'],
       cues: ['Колени за носками', 'Давить пятками'],
     },
-    alternatives: ['smith_squat', 'leg_press', 'bb_back_squat'],
+    alternatives: ['smith_squat', 'leg_press', 'bulgarian_split_squat', 'bb_back_squat'],
   },
   smith_squat: {
     id: 'smith_squat', name: 'Приседания в Смите', short: 'Присед в Смите',
@@ -674,7 +674,7 @@ export const EXERCISES = {
       mistakes: ['Таз поднимается.'],
       cues: ['Таз в скамью'],
     },
-    alternatives: ['seated_leg_curl', 'db_rdl'],
+    alternatives: ['seated_leg_curl', 'db_rdl', 'back_extension'],
   },
   seated_leg_curl: {
     id: 'seated_leg_curl', name: 'Сгибание ног сидя', short: 'Сгибание сидя',
@@ -689,7 +689,7 @@ export const EXERCISES = {
       mistakes: ['Короткая амплитуда.'],
       cues: ['Пятки под себя'],
     },
-    alternatives: ['lying_leg_curl', 'db_rdl'],
+    alternatives: ['lying_leg_curl', 'db_rdl', 'back_extension'],
   },
   standing_calf_raise: {
     id: 'standing_calf_raise', name: 'Подъём на носки стоя', short: 'Икры стоя',

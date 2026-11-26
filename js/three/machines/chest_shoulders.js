@@ -238,7 +238,8 @@ function chest_press(opts = {}) {
   g.add(beam(backRear, V(0, backRear.y, zT), 0.06, M.frame, 0.05));
   g.add(beam(V(-0.36, backRear.y, zT), V(0.36, backRear.y, zT), 0.06, R, 0.05));
   // Levers (pivot at the group origin, built hanging straight down; rotation.x = −θ swings them forward).
-  const grip = new THREE.CylinderGeometry(0.018, 0.018, 0.17, 16), stubGeo = cylX(0.013, C.leverX - C.handX + 0.02, 12);
+  const grip = new THREE.CylinderGeometry(0.0165, 0.0165, 0.17, 16),   // (step 05) grips r 16.5 mm: inside the fist's tunnel
+    stubGeo = cylX(0.013, C.leverX - C.handX + 0.02, 12);
   const levers = [1, -1].map((s) => {
     const L = new THREE.Group();
     L.position.set(0, C.pivotY, C.pivotZ);
@@ -294,7 +295,9 @@ function pec_deck(opts = {}) {
   const P = PEC_DECK, hand = makeDrive(g, parts, opts.hand);
   const pivotZ = opts.pivotZ ?? -0.06, r = opts.r ?? 0.56, handY = opts.handY ?? 0.96, zT = P.zTower;
   // Seat + back pad (face 0.11 behind the seated hip joint, reclined 3°), the pad cantilevered from the tower.
-  const { backRear } = seatAndBack(g, M, R, { pelvis: P.pelvis, recline: P.recline, seatZ: [-0.1, 0.32], back: [0.14, 0.86], backW: 0.3 });
+  const { backRear } = seatAndBack(g, M, R, { pelvis: P.pelvis, recline: P.recline, seatZ: [-0.1, 0.32], back: opts.back ?? [0.14, 0.86], backW: 0.3 });
+  // (step 05) opts.back: the reversed lifter faces this pad — reverse_pec_deck passes a shorter one (top at the upper
+  // sternum) so the head stays above it, as on a real rear-delt machine.
   // Base: spine beam under the seat to the tower, tower feet.
   g.add(beam(V(0, 0.035, 0.32), V(0, 0.035, zT), 0.08, M.frame, 0.06));
   g.add(beam(V(-0.3, 0.035, 0.32), V(0.3, 0.035, 0.32), 0.07, M.frame, 0.05));
@@ -311,7 +314,8 @@ function pec_deck(opts = {}) {
   g.add(beam(V(-0.28, HT + 0.02, zT), V(0.28, HT + 0.02, zT), 0.08, R, 0.07));
   g.add(beam(V(-0.22, HT, pivotZ), V(0.22, HT, pivotZ), 0.06, R, 0.06));
   // Back pad brackets from the tower (high enough for the reversed lifter's knees to pass below).
-  for (const y of [backRear.y - 0.18, backRear.y + 0.2]) {
+  const bh = (opts.back ? opts.back[1] - opts.back[0] : 0.72) / 0.72;
+  for (const y of [backRear.y - 0.18 * bh, backRear.y + 0.2 * bh]) {
     const zb = backRear.z + (y - backRear.y) * Math.tan(P.recline * D2R) * -1;
     g.add(beam(V(0, y, zb), V(0, y, zT), 0.06, M.frame, 0.05));
   }
@@ -322,7 +326,7 @@ function pec_deck(opts = {}) {
   for (const p of pulleys) { const w = mesh(pulleyGeo(), M.steel); w.position.copy(p); w.rotation.y = Math.PI / 2; g.add(w); }
   const setCable = stackCable(g, M, attach, [V(0, HT - 0.07, zT), ...pulleys.slice(1).map((p) => p.clone().setY(p.y + 0.05))]);
   // Arms (built at ψ = 0 pointing +Z; rotation.y = ±ψ).
-  const gripGeo = new THREE.CylinderGeometry(0.018, 0.018, 0.17, 16);
+  const gripGeo = new THREE.CylinderGeometry(0.0165, 0.0165, 0.17, 16);
   const arms = [1, -1].map((s) => {
     const A = new THREE.Group();
     A.position.set(s * 0.2, P.hubY, pivotZ);
@@ -392,7 +396,7 @@ function shoulder_press(opts = {}) {
   cam.position.set(0, C.pivotY, zT);
   g.add(cam);
   // Levers (group at the pivot, built horizontal pointing +Z; rotation.x = −θ raises them).
-  const gripGeo = cylZ(0.018, 0.14, 16), stubGeo = cylX(0.013, C.leverX - C.handX + 0.02, 12);
+  const gripGeo = cylZ(0.0165, 0.14, 16), stubGeo = cylX(0.013, C.leverX - C.handX + 0.02, 12);
   const levers = [1, -1].map((s) => {
     const L = new THREE.Group();
     L.position.set(0, C.pivotY, zT);

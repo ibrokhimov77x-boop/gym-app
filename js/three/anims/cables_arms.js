@@ -205,7 +205,7 @@ export default [
         foot_R: { pos: [-0.12, 0, 0.0], rot: [0, -6, 0], hint: [-0.15, 0.5, 1] },
       },
       bottom: {
-        ...hands({ pos: [0.09, 0.84, 0.12], palm: [-1, 0, 0.1], hint: [0.35, 0.9, -0.6], pivot: [0.115, 1.13, -0.02] }),
+        ...hands({ pos: [0.09, 0.84, 0.165], palm: [-1, 0, 0.1], hint: [0.35, 0.9, -0.6], pivot: [0.115, 1.13, -0.02] }),   // (step 05) fists 4–5 cm clear of the thighs
       },
     },
   },
@@ -235,7 +235,7 @@ export default [
         ...hands({ pos: [0.13, 1.1, 0.33], palm: [-0.5, 0.87, 0], hint: [0.42, 0.85, -0.6] }),
       },
       bottom: {
-        ...hands({ pos: [0.13, 0.83, 0.12], palm: [-0.5, 0, 0.87], hint: [0.42, 0.85, -0.6], pivot: [0.13, 1.13, -0.02] }),
+        ...hands({ pos: [0.13, 0.83, 0.165], palm: [-0.5, 0, 0.87], hint: [0.42, 0.85, -0.6], pivot: [0.13, 1.13, -0.02] }),   // (step 05) fists clear of the thighs
       },
     },
   },
@@ -259,12 +259,12 @@ export default [
         pelvis: { pos: [0, 0.955, -0.05], rot: [12, 0, 0] },
         neck: [-8, 0, 0],
         clavicle_L: [0, -3, -2], clavicle_R: [0, -3, -2],
-        ...hands({ pos: [0.16, 0.8, 0.09], palm: [-0.85, 0, -0.5], hint: [0.3, 0.9, -0.7], pivot: [0.13, 1.12, -0.04] }),
+        ...hands({ pos: [0.17, 0.8, 0.135], palm: [-0.85, 0, -0.5], hint: [0.36, 0.9, -0.7], pivot: [0.155, 1.12, -0.04] }),   // (step 05) fists in front of the thighs, elbows off the flanks
         foot_L: { pos: [0.13, 0, 0.02], rot: [0, 6, 0], hint: [0.16, 0.5, 1] },
         foot_R: { pos: [-0.13, 0, -0.06], rot: [0, -6, 0], hint: [-0.16, 0.5, 1] },
       },
       bottom: {
-        ...hands({ pos: [0.1, 1.14, 0.3], palm: [-1, 0, 0], hint: [0.3, 0.9, -0.7], pivot: [0.13, 1.12, -0.04] }),
+        ...hands({ pos: [0.115, 1.14, 0.3], palm: [-1, 0, 0], hint: [0.36, 0.9, -0.7], pivot: [0.155, 1.12, -0.04] }),
       },
     },
   },

@@ -1,7 +1,7 @@
 // Аналитика тренировок. Чистые функции без DOM — используются и приложением, и ботом.
 // Контракт: docs/DATA_CONTRACT.md
 import { EXERCISES, MUSCLES } from './data/exercises.js';
-import { PROGRAM } from './data/program.js';
+import { PROGRAM, calibCount } from './data/program.js';
 
 const DAY = 86400000;
 // Упражнения, которые делаются одной рукой/ногой за раз (вес на одну сторону, объём не удваиваем).
@@ -145,10 +145,11 @@ export function muscleVolume(workouts, from = 0, to = Infinity) {
   return vol;
 }
 
-/** Ориентиры недельного объёма (тяжёлых подходов) для ~1 года стажа. */
+/** Ориентиры недельного объёма (тяжёлых подходов) для ~1 года стажа. Бицепс и трицепс — акцент программы,
+ * предплечья растут вместе с ними (молотки, канат): docs/PLAN_V2.md §5. */
 export const VOLUME_TARGETS = {
   chest: [8, 14], lats: [8, 14], mid_back: [6, 12], front_delt: [4, 10], side_delt: [6, 14], rear_delt: [4, 10],
-  traps: [2, 8], lower_back: [2, 6], biceps: [6, 12], triceps: [6, 12], forearms: [2, 8], abs: [4, 10], obliques: [2, 6],
+  traps: [2, 8], lower_back: [2, 6], biceps: [10, 16], triceps: [10, 16], forearms: [2, 10], abs: [4, 10], obliques: [2, 6],
   glutes: [6, 12], quads: [8, 14], hamstrings: [6, 12], adductors: [2, 8], calves: [6, 12],
 };
 
@@ -206,8 +207,10 @@ const floorTo = (x, step) => {
  * item: { exId, sets, reps:[lo,hi], rir:[lo,hi] }
  * Возвращает { mode, w, reps:[lo,hi], sets, note, last }
  *   mode: 'calibrate' — подобрать вес; 'increase' — добавить вес; 'reps' — добавить повторы; 'hold'; 'reduce'.
+ * calibrating — идёт неделя знакомства (по умолчанию считается по тренировкам, calibCount): упражнение, которое
+ * пока делалось только на знакомстве, остаётся «подобрать вес» (hint — прошлый вес); рабочий вес — после знакомства.
  */
-export function nextTarget(workouts, item, exIdOverride = null) {
+export function nextTarget(workouts, item, exIdOverride = null, calibrating = calibCount(workouts) < PROGRAM.calibration.sessions) {
   const exId = exIdOverride || item.exId;
   const ex = EXERCISES[exId];
   const [lo, hi] = item.reps;
@@ -227,6 +230,10 @@ export function nextTarget(workouts, item, exIdOverride = null) {
   }
   const topW = Math.max(...last.sets.map((s) => s.w));
   const atTop = last.sets.filter((s) => s.w === topW);
+  if (calibrating && h.every((x) => x.calib)) {
+    return { ...base, mode: 'calibrate', w: null, hint: topW, last: last.sets,
+      note: `Неделя знакомства ещё идёт: подбери вес на ${hi} повторов с запасом 2–3 (RIR 2–3).` };
+  }
   // После недели знакомства: рабочий вес из лучшей оценки силы
   if (last.calib && h.filter((x) => !x.calib).length === 0) {
     const best = Math.max(...h.map((x) => x.best));

@@ -132,7 +132,7 @@ export const leverPivot = (cfg, side = 1) => [side * cfg.handX, cfg.pivotY, cfg.
  */
 function swivelHandle(M, dx) {
   const g = new THREE.Group(), half = 0.085;
-  g.add(mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.15, 16), M.rubber));
+  g.add(mesh(new THREE.CylinderGeometry(0.0165, 0.0165, 0.15, 16), M.rubber));   // (step 05) grips r 16.5 mm: inside the fist's 17.5 mm tunnel
   for (const s of [1, -1]) {
     g.add(rbox(0.02, 0.012, 0.03, M.steel, 0, s * half, 0, 0.004)); // end caps
     g.add(beam(V(0, s * half, 0), V(dx, s * half, 0), 0.022, M.steel, 0.03));
@@ -310,7 +310,7 @@ function assisted_pullup(opts = {}) {
     g.add(beam(V(s * xc, H - 0.08, hz), V(x, H - 0.08, hz), 0.05, M.frame, 0.05));
     for (const dz of [-0.09, 0.09]) g.add(beam(V(x, H - 0.08, hz + dz), V(x, hy, hz + dz), 0.03, M.steel, 0.025));
     g.add(beam(V(x, H - 0.08, hz - 0.1), V(x, H - 0.08, hz + 0.1), 0.04, M.frame, 0.04));
-    const grip = mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.17, 16).rotateX(Math.PI / 2), M.rubber);
+    const grip = mesh(new THREE.CylinderGeometry(0.0165, 0.0165, 0.17, 16).rotateX(Math.PI / 2), M.rubber);
     grip.position.set(x, hy, hz); g.add(grip);
   }
   // Counterweight stack between the columns (front); stack part starts 2 cm lifted (cable under tension at the top).
@@ -472,7 +472,7 @@ function hyperextension() {
   const { d, n, hip, ankle } = hyperFrame();
   const along = (s, off) => hip.clone().addScaledVector(d, s).addScaledVector(n, off);
   // Hip pads (two, angled with the legs) — top edge just below the hip crease.
-  const padC = along(0.17, 0.085 + 0.045);
+  const padC = along(0.19, 0.085 + 0.045 + 0.025);   // (step 05) +25 mm: the thighs and belly sank 43 mm into the pads
   for (const s of [1, -1]) {
     const p = pad(0.17, 0.09, 0.3, M, 0, 0, 0, 0.04);
     p.position.copy(padC).setX(s * 0.1);
@@ -502,7 +502,7 @@ function hyperextension() {
   // Mounting handles: a cross bar on the frame under the pads, grips at its ends pointing forward-down, out at the
   // sides and below the pads — clear of the torso and the crossed arms at the bottom of the rep.
   g.add(beam(along(0.4, 0.24).setX(0.3), along(0.4, 0.24).setX(-0.3), 0.035, M.frame));
-  for (const s of [1, -1]) g.add(rod(along(0.4, 0.24).setX(s * 0.3), along(0.4, 0.38).setX(s * 0.31), 0.018, M.rubber));
+  for (const s of [1, -1]) g.add(rod(along(0.4, 0.24).setX(s * 0.3), along(0.4, 0.38).setX(s * 0.31), 0.0165, M.rubber));
   return { group: g, parts: {}, anchors: { hip: hip.clone() } };
 }
 

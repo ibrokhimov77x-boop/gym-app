@@ -15,7 +15,7 @@
 @keyframes pop-in { from { transform: scale(.6); opacity: 0; } }
 .week-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding: 10px 4px 0; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--text-2); }
 .week-meta b { color: var(--text); font-weight: 750; }
-.streak { display: inline-flex; align-items: center; gap: 4px; color: var(--warn); font-weight: 650; }
+.streak { display: inline-flex; align-items: center; gap: 4px; color: var(--warn-ink); font-weight: 650; }
 
 .resume { display: flex; align-items: center; gap: 12px; padding: 14px 16px; margin-bottom: 12px; border-color: var(--accent-line); background: linear-gradient(120deg, var(--accent-soft), var(--surface) 70%); }
 .resume > div { flex: 1; }
@@ -97,6 +97,8 @@
 .tip.warn { background: rgba(255, 176, 32, .08); border-color: rgba(255, 176, 32, .25); }
 .tip.warn .ic { color: var(--warn); }
 .tip b { color: var(--text); }
+.tip .tip-go { white-space: nowrap; color: var(--accent-text); font-weight: 600; }
+.tip .tip-go .ic { display: inline-block; color: inherit; margin: 0; vertical-align: -2px; }
 
 .warmup { margin-top: 12px; padding: 0 14px; }
 .warmup summary { display: flex; align-items: center; gap: 12px; min-height: 60px; }
@@ -237,6 +239,7 @@
 .plan-meta em { font-style: normal; color: var(--text); font-weight: 700; margin-right: 4px; }
 .plan-note { font-size: 12.5px; color: var(--warn); }
 .replaced { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; color: var(--info); }
+.replaced.warn { color: var(--warn); }
 
 .rules { display: flex; flex-direction: column; gap: 10px; }
 .rule { display: flex; gap: 12px; padding: 14px 16px; border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line); }
@@ -366,9 +369,306 @@
 .num-field:focus-within { border-color: var(--accent-line); }
 .sync { display: flex; flex-direction: column; gap: 4px; }
 .sync-row { display: flex; justify-content: space-between; align-items: center; min-height: 36px; font-size: 14px; color: var(--text-2); gap: 10px; }
+.sync-row > span { flex: none; }
 .sync-row b { font-weight: 650; text-align: right; }
 .sync .btn { margin-top: 10px; }
+.sync .sync-again { align-self: center; margin-top: 4px; color: var(--text-2); font-weight: 560; font-size: 13.5px; }
 .hint { display: flex; gap: 8px; margin-top: 10px; padding: 12px; border-radius: 14px; background: var(--surface-2); font-size: 13.5px; color: var(--text-2); }
 .hint .ic { color: var(--info); margin-top: 2px; }
 .footnote { text-align: center; color: var(--text-3); font-size: 12px; margin-top: 16px; }
+.footnote.left { text-align: left; margin: 14px 4px 0; line-height: 1.45; }
+.footnote .ic { display: inline-block; vertical-align: -2px; margin-right: 2px; }
+
+/* ───── Состояние (раздел в «Профиле») ───── */
+.st-card { overflow: hidden; }
+.st-head { display: flex; align-items: center; gap: 12px; padding: 16px 16px 14px; }
+.st-ic { width: 44px; height: 44px; border-radius: 15px; display: grid; place-items: center; flex: none; background: var(--accent-soft); color: var(--accent-text); }
+.st-ic.muted { background: var(--surface-2); color: var(--text-3); }
+.st-title { flex: 1; min-width: 0; }
+.st-title h4 { font-size: 19px; font-weight: 800; letter-spacing: -.025em; }
+.st-title p { color: var(--text-2); font-size: 13px; margin-top: 1px; }
+.st-goalw { display: flex; flex-direction: column; align-items: flex-end; flex: none; }
+.st-goalw b { font: 800 17px/1.15 var(--font-display); letter-spacing: -.02em; }
+.st-goalw span { font-size: 11.5px; color: var(--text-3); font-weight: 600; }
+
+.st-table {
+  display: grid; grid-template-columns: auto repeat(4, minmax(0, 1fr)); align-items: baseline; gap: 2px 6px;
+  margin: 0 12px; padding: 10px 14px 12px 12px; border-radius: 16px; background: var(--surface-2);
+}
+.st-cap { font-size: 11.5px; font-weight: 600; color: var(--text-2); text-align: right; }
+.st-row { font-size: 11.5px; font-weight: 600; color: var(--text-2); padding-right: 2px; }
+.st-table b { font: 800 18px/1.25 var(--font-display); letter-spacing: -.03em; text-align: right; }
+.st-table i { font-style: normal; font-weight: 700; font-size: 15px; line-height: 1.3; text-align: right; color: var(--text-2); }
+.st-table i.good { color: var(--good-ink); }
+.st-table i.warn { color: var(--warn-ink); }
+/* Режим выбран без чисел: вместо таблицы норм — приглашение их задать */
+.st-nonorm { display: flex; align-items: center; gap: 12px; margin: 0 12px; padding: 12px 14px; border-radius: 16px; background: var(--surface-2); }
+.st-nonorm > .ic:first-child { color: var(--accent-text); }
+.st-nonorm span { flex: 1; min-width: 0; font-size: 13px; line-height: 1.35; color: var(--text-3); }
+.st-nonorm b { display: block; margin-bottom: 1px; font-size: 15px; font-weight: 700; color: var(--text); }
+
+.st-today { display: flex; flex-direction: column; gap: 12px; padding: 16px; }
+.st-today-text { display: flex; flex-direction: column; gap: 2px; }
+.st-today-text b { display: flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+.st-today-text span { color: var(--text-2); font-size: 13px; }
+.st-draft { display: flex; align-items: center; gap: 6px; min-height: 24px; color: var(--warn-ink); font-size: 13px; font-weight: 600; }
+a.st-draft { min-height: 40px; margin: -4px 0; }
+.st-missed { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 10px 12px; border-radius: 12px; background: rgba(255, 176, 32, .12); color: var(--warn-ink); font-size: 14px; }
+.st-missed > span { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.st-missed b { font-weight: 650; }
+.st-missed small { color: var(--text-2); font-size: 12.5px; }
+
+.st-week { padding: 14px 12px 12px; border-top: 1px solid var(--line); }
+.st-strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.st-day { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-2); font-weight: 600; }
+.st-day b {
+  width: 38px; height: 38px; border-radius: 13px; display: grid; place-items: center;
+  font: 700 15px/1 var(--font-display); color: var(--text-3); border: 1px solid var(--line);
+  transition: transform .14s var(--ease);
+}
+.st-day:active b { transform: scale(.92); }
+.st-day.ok b { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+/* Промах калорий: в опасную для режима сторону (класс warn, diary-model.markTone) — янтарный, в другую — спокойный синий.
+   Цвет значка — «чернильный» токен: в светлой теме он темнее и читается на бледной плашке. */
+.st-day.over b, .st-day.under b { background: rgba(90, 184, 255, .12); color: var(--info-ink); border-color: rgba(90, 184, 255, .28); }
+.st-day.warn b { background: rgba(255, 176, 32, .14); color: var(--warn-ink); border-color: rgba(255, 176, 32, .3); }
+.st-day.log b { background: var(--surface-2); }
+.st-day.log u { width: 8px; height: 8px; border-radius: 50%; background: var(--text-2); }
+.st-day.today span { color: var(--text); }
+.st-day.today b { border-color: var(--accent-line); box-shadow: 0 0 0 3px var(--accent-soft); }
+.st-day.today.none b { color: var(--text); background: var(--surface-2); }
+.st-week-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding: 10px 4px 0; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--text-2); }
+.st-week-meta b { color: var(--text); font-weight: 750; }
+
+.st-kpis { margin-top: 10px; }
+/* Подпись «вес идёт куда нужно / не туда» и число-предупреждение: в светлой теме — тёмные оттенки, читаемые на белом */
+.st-kpis small.good-text { color: var(--good-ink); }
+.st-kpis small.warn-text { color: var(--warn-ink); }
+.st-kpis b.warn-text, .dg-tiles b.warn-text, .d-sleep b.warn-text { color: var(--warn-ink); }
+.st-verdict {
+  display: flex; gap: 12px; margin-top: 10px; padding: 14px 16px; border-radius: var(--r-lg);
+  border: 1px solid var(--line); background: var(--surface);
+}
+.st-verdict > .ic { flex: none; margin-top: 1px; color: var(--text-3); }
+.st-verdict p { font-size: 14px; color: var(--text-2); }
+.st-verdict span { display: inline-flex; align-items: center; gap: 2px; min-height: 24px; margin-top: 4px; font-size: 13px; font-weight: 650; color: var(--accent-text); }
+.st-verdict.warn { border-color: rgba(255, 176, 32, .3); background: linear-gradient(150deg, rgba(255, 176, 32, .10), var(--surface) 70%); }
+.st-verdict.warn > .ic { color: var(--warn); }
+.st-verdict.info { border-color: rgba(90, 184, 255, .24); background: linear-gradient(150deg, rgba(90, 184, 255, .09), var(--surface) 70%); }
+.st-verdict.info > .ic { color: var(--info); }
+.st-verdict.good { border-color: rgba(61, 220, 151, .24); background: linear-gradient(150deg, rgba(61, 220, 151, .08), var(--surface) 70%); }
+.st-verdict.good > .ic { color: var(--good); }
+.st-verdict:active { transform: scale(.99); }
+.st-links { margin-top: 10px; }
+
+/* ───── Режим и нормы ───── */
+.g-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.g-mode { min-height: 104px; padding: 12px; gap: 2px; justify-content: flex-start; }
+.g-mode b { font-size: 15.5px; }
+.g-mode > span:last-child { font-size: 12.5px; line-height: 1.3; }
+.g-mode .g-mode-ic { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; margin-bottom: 6px; background: var(--surface-2); color: var(--text-2); transition: background-color .2s, color .2s; }
+.g-mode.on .g-mode-ic { background: var(--accent); color: var(--on-accent); }
+.g-note { margin: 10px 2px 0; color: var(--text-2); font-size: 13.5px; }
+.g-hist { align-items: flex-start; }
+.g-hist .g-hist-note { color: var(--text-2); font-style: italic; }
+.g-hist span:not(.g-hist-note):not(.badge) { color: var(--text-2); }
+
+/* ───── Форма дня и формы норм: крупные поля под большой палец ───── */
+.d-nav { display: flex; gap: 6px; }
+/* Переключатель дней — «таблетки» с числом дня, чтобы не путать со стрелкой «Назад» в той же строке */
+.d-step {
+  display: inline-flex; align-items: center; gap: 2px; height: 40px; min-width: 52px; padding: 0 10px; justify-content: center;
+  border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); color: var(--text); font-size: 14px; font-weight: 650;
+}
+.d-step .ic { color: var(--text-2); }
+.d-step:disabled { opacity: .35; }
+.d-step:active:not(:disabled) { transform: scale(.96); }
+/* Правка сохранённого дня: её можно отбросить, не очищая сам день; изменённые поля отмечены */
+.d-edits { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; padding: 6px 6px 6px 14px; border-radius: 16px; background: rgba(255, 176, 32, .08); border: 1px solid rgba(255, 176, 32, .25); color: var(--warn-ink); font-size: 13.5px; font-weight: 600; }
+.d-edits[hidden] { display: none; }
+.d-edits > span { display: inline-flex; align-items: center; gap: 6px; }
+.d-edits .chip-btn { height: 40px; color: var(--text); }
+.d-field.edited .d-input { border-color: rgba(255, 176, 32, .55); }
+/* Длинный режим («Рекомпозиция · день 141») и «сохранено в 22:30» на 360 px не помещаются в строку: статус уходит
+   на вторую строку и прижимается вправо, а не вылезает за поле страницы */
+.d-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; min-height: 26px; margin: 12px 2px 0; }
+.d-top .d-state { margin-left: auto; }
+.d-top .badge { height: 26px; padding: 0 10px; gap: 5px; font-size: 12.5px; }
+/* Ссылка «режим не выбран · выбрать» — маленькая на вид, но касание ловится на 44 px по высоте */
+.d-top a.badge { position: relative; }
+.d-top a.badge::after { content: ""; position: absolute; inset: -9px -4px; }
+.d-state { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 650; color: var(--text-3); white-space: nowrap; }
+.d-state.dirty { color: var(--warn-ink); }
+.d-state.dirty::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--warn); }
+.d-state.saved { color: var(--good-ink); }
+
+.d-card { margin-top: 12px; padding: 14px; }
+.d-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.d-card-head > .ic { color: var(--accent-text); }
+.d-card-head h3 { flex: 1; font-size: 16px; font-weight: 750; }
+.d-card-head span { font-size: 12px; font-weight: 600; color: var(--text-3); }
+.d-card-head a { display: inline-flex; align-items: center; gap: 2px; min-height: 32px; margin: -8px 0; font-size: 13px; font-weight: 650; color: var(--accent-text); }
+.d-card-head a .ic { color: inherit; }
+
+.d-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.d-label { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; min-height: 18px; }
+.d-label b { font-size: 13px; font-weight: 650; color: var(--text-2); white-space: nowrap; }
+.d-label em { font-style: normal; font-size: 12.5px; font-weight: 650; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.d-input {
+  display: flex; align-items: baseline; gap: 4px; height: 52px; padding: 0 12px; border-radius: 14px; cursor: text;
+  background: var(--surface-2); border: 1px solid var(--line-2); transition: border-color .2s, box-shadow .2s;
+}
+.d-input:focus-within { border-color: var(--accent-line); box-shadow: 0 0 0 3px var(--accent-soft); }
+.d-input input {
+  flex: 1; min-width: 0; width: 100%; height: 50px; padding: 0; border: 0; border-radius: 0; background: transparent; outline: none;
+  font: 800 22px/50px var(--font-display); letter-spacing: -.02em; color: var(--text);
+}
+.d-input input::placeholder { color: var(--text-3); font-weight: 600; opacity: .55; }
+.d-input i { flex: none; font-style: normal; font-size: 13px; font-weight: 600; color: var(--text-3); }
+.d-field.big .d-input { height: 62px; padding: 0 16px; border-radius: 16px; }
+.d-field.big .d-input input { height: 60px; font-size: 31px; line-height: 60px; letter-spacing: -.035em; }
+.d-field.big .d-input i { font-size: 15px; }
+.d-field.invalid .d-input { border-color: var(--bad); box-shadow: 0 0 0 3px rgba(255, 90, 78, .14); }
+.d-field.sug .d-input input { color: var(--text-2); }
+/* «в 07:00, как обычно» под пустым временем подъёма: одно касание ставит обычное время в поле. Ссылкой, а не
+   «таблеткой»: в узкой колонке текст переносится на вторую строку, а время не обрезается */
+.d-usual {
+  align-self: flex-start; display: inline-flex; align-items: flex-start; gap: 5px; min-height: 32px; margin: -2px 0 -6px; padding: 4px 0;
+  text-align: left; font-size: 13px; font-weight: 650; line-height: 1.3; color: var(--accent-text);
+}
+.d-usual { position: relative; }
+.d-usual::after { content: ""; position: absolute; inset: -6px -8px; } /* касание — на 44 px по высоте, вид прежний */
+.d-usual .ic { flex: none; margin-top: 0; }
+.d-usual:active { opacity: .7; }
+.d-hint { font-size: 12.5px; line-height: 1.35; font-weight: 550; color: var(--text-2); }
+.d-hint:empty { display: none; }
+.d-hint.good { color: var(--good-ink); }
+.d-hint.warn { color: var(--warn-ink); }
+.d-hint.bad { color: var(--bad-ink); }
+
+.d-meter { position: relative; height: 6px; border-radius: 99px; background: var(--surface-3); overflow: hidden; }
+.d-meter i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: inherit; background: var(--text-3); transition: width .35s var(--ease), background-color .2s; }
+.d-meter i.ok { background: var(--accent); }
+.d-meter i.over { background: var(--warn); }
+.d-meter s { position: absolute; top: 0; bottom: 0; background: rgba(255, 255, 255, .13); border-left: 1.5px solid var(--text-2); border-right: 1.5px solid var(--text-2); }
+[data-theme="light"] .d-meter s { background: rgba(0, 0, 0, .08); }
+
+.d-macros { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+.d-macros .d-input { padding: 0 10px; }
+.d-macros .d-input input { font-size: 21px; }
+.d-macros .d-meter { height: 4px; }
+.d-macros .d-hint { font-size: 12px; }
+.d-sum { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13px; color: var(--text-2); }
+.d-sum.warn p { color: var(--warn-ink); }
+.d-sum .chip-btn { flex: none; }
+
+.d-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.d-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+.d-now { min-height: 52px; padding: 0 18px; border-radius: 14px; white-space: nowrap; }
+.d-sleep { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.d-sleep > .ic { flex: none; color: var(--text-3); }
+.d-sleep div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.d-sleep span { font-size: 13.5px; font-weight: 650; color: var(--text-2); }
+.d-sleep small { font-size: 12px; color: var(--text-2); }
+.d-sleep b { flex: none; font: 800 18px/1.2 var(--font-display); letter-spacing: -.02em; white-space: nowrap; }
+
+/* Время: системное поле; пустое показывает свой прочерк (на iOS пустое системное поле не видно) */
+.d-input.time { position: relative; align-items: center; }
+.d-input.time input { -webkit-appearance: none; appearance: none; text-align: left; }
+.d-input.time input::-webkit-date-and-time-value { text-align: left; }
+.d-input.time input::-webkit-calendar-picker-indicator { display: none; } /* значок часов съедал ширину; выбор времени открывается тапом по полю */
+.d-input.time u { display: none; position: absolute; left: 12px; top: 0; text-decoration: none; pointer-events: none; font: 700 22px/50px var(--font-display); color: var(--text-3); opacity: .55; }
+.d-input.time.empty u { display: block; }
+.d-input.time.empty input { color: transparent; }
+.d-input.time.empty:focus-within u { display: none; }
+.d-input.time.empty:focus-within input { color: var(--text); }
+
+.d-card textarea { font-size: 16px; }
+.d-clear {
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 48px; margin-top: 12px;
+  border-radius: 14px; color: var(--bad-ink); font-weight: 620; font-size: 14.5px; transition: background-color .2s;
+}
+.d-clear:active { background: rgba(255, 90, 78, .1); }
+.d-dock { display: flex; flex-direction: column; gap: 8px; }
+.d-dock .btn { width: 100%; }
+.d-dock .btn-xl { padding: 0 16px; }
+.d-dock .d-again { align-self: center; min-height: 36px; margin: -2px 0 -6px; color: var(--text-2); font-weight: 560; font-size: 13.5px; }
+.d-dock .d-again:disabled { opacity: .5; }
+/* Неактивная кнопка в доке — плотная: полупрозрачная поверх формы читалась бы как мусор */
+.cta-dock .btn-primary:disabled { opacity: 1; background: var(--surface-3); color: var(--text-3); box-shadow: none; }
+/* …а кнопка, которая занята отправкой, остаётся своего цвета и слегка пульсирует */
+.btn.busy:disabled, .cta-dock .btn-primary.busy:disabled { opacity: 1; background: var(--accent); color: var(--on-accent); animation: busy 1s ease-in-out infinite; }
+.btn-secondary.busy:disabled { background: var(--surface-2); color: var(--text); }
+@keyframes busy { 50% { opacity: .6; } }
+@media (prefers-reduced-motion: reduce) { .btn.busy:disabled { animation: none; opacity: .7; } }
+.screen-goal .cta-spacer, .screen-day .cta-spacer { height: 92px; }
+/* Клавиатура открыта (или экран совсем низкий): док не висит поверх полей, а встаёт в конец формы */
+@media (max-height: 520px) {
+  .screen-day .cta-dock, .screen-goal .cta-dock { position: static; padding: 14px 0 0; background: none; }
+  .screen-day .cta-spacer, .screen-goal .cta-spacer { display: none; }
+}
+
+/* ───── Дневник и графики ───── */
+.ph-card { margin-top: 12px; overflow: hidden; }
+/* Нормы строкой с точками между частями. При переносе строка не кончается и не начинается точкой:
+   точка стоит перед каждой частью, а у первой части в строке она уходит под обрезку слева. */
+.ph-targets { margin: -4px 16px 14px; overflow: hidden; font-size: 13.5px; color: var(--text-2); }
+.ph-targets p { display: flex; flex-wrap: wrap; margin-left: -14px; }
+.ph-targets span { position: relative; padding-left: 14px; white-space: nowrap; }
+.ph-targets span::before { content: "·"; position: absolute; left: 4px; width: 6px; text-align: center; color: var(--text-3); }
+.ph-targets i { font-style: normal; color: var(--text-3); margin-right: 6px; }
+.ph-path { margin: 0 12px 14px; padding: 12px 14px; border-radius: 16px; background: var(--surface-2); }
+.ph-path-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 8px; }
+.ph-path-row span { display: flex; flex-direction: column; gap: 1px; }
+.ph-path-row span.now { align-items: center; }
+.ph-path-row span:last-child:not(.now) { align-items: flex-end; }
+.ph-path-row b { font: 800 17px/1.15 var(--font-display); letter-spacing: -.02em; }
+.ph-path-row .now b { font-size: 22px; color: var(--accent-text); }
+.ph-path-row small { font-size: 11.5px; font-weight: 600; color: var(--text-2); }
+.ph-path .bar { margin-top: 10px; }
+.verdicts { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.verdicts li { display: flex; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--text-2); }
+.verdicts li:last-child { border-bottom: 0; }
+.verdicts .ic { flex: none; margin-top: 1px; }
+.verdicts .warn .ic { color: var(--warn); }
+.verdicts .info .ic { color: var(--info); }
+.verdicts .good .ic { color: var(--good); }
+.dg-none { padding: 2px 2px 8px; color: var(--text-3); font-size: 13.5px; }
+.ph-card .dg-none { padding: 12px 16px 14px; border-top: 1px solid var(--line); }
+.dg-range { margin-top: 18px; }
+.dg-tiles { margin-top: 10px; }
+.dg-charts { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.dg-charts .chart-card + .card { margin-top: 0; }
+.dg-chart .legend { margin: 6px 0 4px; gap: 5px; }
+.lg { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-left: 6px; background: color-mix(in srgb, var(--accent) 45%, var(--surface-3)); }
+.lg:first-child { margin-left: 0; }
+.lg.ok { background: var(--accent); }
+.lg.over, .lg.warn { background: var(--warn); }
+.lg.under, .lg.calm { background: color-mix(in srgb, var(--info) 80%, var(--surface-3)); }
+[data-theme="light"] .dg-chart .lg:not(.ok):not(.over):not(.under):not(.warn):not(.calm) { background: var(--text-3); }
+
+.dg-weeks { padding: 4px 14px; }
+.dg-weeks table { width: 100%; border-collapse: collapse; }
+.dg-weeks th, .dg-weeks td { padding: 9px 0 9px 8px; text-align: right; vertical-align: top; border-bottom: 1px solid var(--line); font-weight: 400; }
+.dg-weeks tbody tr:last-child th, .dg-weeks tbody tr:last-child td { border-bottom: 0; }
+.dg-weeks thead th { padding-top: 10px; font-size: 11.5px; font-weight: 600; color: var(--text-2); white-space: nowrap; }
+.dg-weeks th:first-child { text-align: left; padding-left: 0; }
+.dg-weeks b { display: block; font-size: 14.5px; font-weight: 700; white-space: nowrap; }
+.dg-weeks small { display: block; font-size: 11.5px; color: var(--text-2); white-space: nowrap; }
+.dg-weeks tbody th b { font-size: 13.5px; font-weight: 650; }
+.dg-weeks tr.none b { color: var(--text-3); }
+
+/* Мелкий текст, в котором числа (значения дня, нормы, подписи «из 165»), — --text-2: --text-3 на тёмном даёт 3,5–3,9:1 */
+.dg-day:not(.none) > div > span:not(.dg-note), :where(.dg-tiles, .st-kpis) .kpi small { color: var(--text-2); } /* :where — цвет «вес идёт куда нужно» (good-text / warn-text) важнее */
+.dg-day.none b { color: var(--text-3); }
+.dg-day.todo span, .dg-day.todo .ic { color: var(--accent-text); }
+.dg-day .dg-note { color: var(--text-2); font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dg-mark { display: inline-grid; place-items: center; flex: none; width: 24px; height: 24px; border-radius: 8px; background: var(--surface-2); color: var(--text-3); }
+.dg-mark.ok { background: var(--accent); color: var(--on-accent); }
+.dg-mark.over, .dg-mark.under { background: rgba(90, 184, 255, .14); color: var(--info-ink); }
+.dg-mark.warn { background: rgba(255, 176, 32, .16); color: var(--warn-ink); }
+.dg-mark.log::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--text-3); }
+.dg-more { margin-top: 10px; }
+.dg-legend .dg-mark { width: 20px; height: 20px; border-radius: 7px; margin-left: 4px; }
+.dg-legend .dg-mark:first-child { margin-left: 0; }
 

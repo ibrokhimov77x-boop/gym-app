@@ -220,14 +220,14 @@ function lying_leg_curl() {
   const M = getMaterials(), R = M.frameRed, g = new THREE.Group();
   const cfg = LYING_CURL, [ky, kz] = cfg.knee;
   // Pads: thigh pad (flat) + chest pad tilted so the torso is supported along its length.
-  g.add(rbox(0.3, 0.08, 0.42, M.upholstery, 0, 0.71, -0.19, 0.03));
+  g.add(rbox(0.3, 0.08, 0.42, M.upholstery, 0, 0.685, -0.19, 0.03));   // (step 05) 25 mm lower: the thighs sank 40 mm
   const chest = rbox(0.34, 0.08, 0.54, M.upholstery, 0, 0, 0, 0.03);
   chest.rotation.x = 21 * D2R;
   chest.position.set(0, 0.6176, 0.2036);
   g.add(chest);
   const board = rbox(0.3, 0.016, 0.5, M.frame, 0, 0, 0, 0.004);
   board.rotation.x = 21 * D2R; board.position.set(0, 0.565, 0.19); g.add(board);
-  g.add(rbox(0.26, 0.016, 0.38, M.frame, 0, 0.662, -0.19, 0.004));
+  g.add(rbox(0.26, 0.016, 0.38, M.frame, 0, 0.637, -0.19, 0.004));
   // Frame: spine beam under the pads, front & rear legs, floor rail with cross feet.
   g.add(beam(V(0, 0.63, -0.4), V(0, 0.63, 0.0), 0.08, M.frame, 0.06));
   g.add(beam(V(0, 0.63, 0.0), V(0, 0.48, 0.42), 0.08, M.frame, 0.06));
@@ -250,7 +250,7 @@ function lying_leg_curl() {
   g.add(rod(V(-hx, 0.42, hz), V(hx, 0.42, hz), 0.02, R));
   for (const sx of [1, -1]) {
     g.add(rod(V(sx * hx, 0.42, hz), V(sx * hx, 0.69, hz), 0.016, M.steel));
-    g.add(rod(V(sx * hx, 0.47, hz), V(sx * hx, 0.65, hz), 0.02, M.rubber));
+    g.add(rod(V(sx * hx, 0.47, hz), V(sx * hx, 0.65, hz), 0.0165, M.rubber));   // (step 05) grip r 16.5 mm
   }
   const lever = curlLever(g, M, cfg, HUB_X);
   // Stack tower beside the chest pad (right side); cable: down the tower → along the floor → up to the cam.
@@ -269,8 +269,9 @@ function lying_leg_curl() {
 function seated_leg_curl() {
   const M = getMaterials(), R = M.frameRed, g = new THREE.Group();
   const cfg = SEATED_CURL, [ky, kz] = cfg.knee, tilt = cfg.tilt * D2R;
-  g.add(rbox(0.4, 0.08, 0.5, M.upholstery, 0, 0.515, 0.12, 0.03));
-  g.add(rbox(0.34, 0.016, 0.44, M.frame, 0, 0.467, 0.12, 0.004));
+  // (step 05) seat top 0.548: the thighs and buttocks rest ≈ 10 mm deep in the cushion (was 0.555; with the glute drive)
+  g.add(rbox(0.4, 0.08, 0.5, M.upholstery, 0, 0.508, 0.12, 0.03));
+  g.add(rbox(0.34, 0.016, 0.44, M.frame, 0, 0.46, 0.12, 0.004));
   // Back pad parallel to the torso (pelvis tilt 10°), 0.115 behind the spine axis.
   const back = rbox(0.36, 0.56, 0.07, M.upholstery, 0, 0, 0, 0.03);
   back.rotation.x = tilt; back.position.set(0, 0.991, -0.092); g.add(back);
@@ -292,7 +293,7 @@ function seated_leg_curl() {
   g.add(beam(V(px, 0.05, 0.6), V(px, ky, kz), 0.07, M.frame, 0.06));
   const bearing = mesh(cylX(0.05, 0.06, 20), R); bearing.position.set(px, ky, kz); g.add(bearing);
   // Thigh hold-down roller above the knees, on an arm from the pivot tower.
-  const tY = 0.742, tZ = 0.33;
+  const tY = 0.765, tZ = 0.33;   // (step 05) resting on the thighs (was 0.742: 30 mm into them)
   g.add(beam(V(px, ky + 0.03, kz - 0.02), V(px, tY, tZ), 0.05, R, 0.04));
   g.add(rod(V(px, tY, tZ), V(0.2, tY, tZ), 0.013, M.steel));
   const tRoll = mesh(cylX(0.048, 0.4, 24), M.upholstery); tRoll.position.set(0, tY, tZ); g.add(tRoll);
@@ -303,7 +304,7 @@ function seated_leg_curl() {
     g.add(beam(V(sx * 0.12, 0.455, postZ), V(sx * hx, 0.455, postZ), 0.04, M.frame, 0.03));
     g.add(beam(V(sx * hx, 0.455, postZ), V(sx * hx, hy, postZ), 0.03, M.frame, 0.03));
     g.add(rod(V(sx * hx, hy, -0.05), V(sx * hx, hy, 0.24), 0.016, M.steel));
-    g.add(rod(V(sx * hx, hy, 0.0), V(sx * hx, hy, 0.2), 0.02, M.rubber));
+    g.add(rod(V(sx * hx, hy, 0.0), V(sx * hx, hy, 0.2), 0.0165, M.rubber));   // (step 05) grip r 16.5 mm
   }
   const lever = curlLever(g, M, cfg, HUB_X);
   // Stack tower behind the seat on the right; cable: down the tower → forward along the floor → up to the cam.
@@ -353,7 +354,7 @@ function captains_chair() {
     const hx = sx * handle[0], hz = handle[2];
     g.add(beam(V(x, yb - 0.02, 0.3), V(hx, yb - 0.02, hz), 0.05, M.frame, 0.04));
     g.add(rod(V(hx, yb - 0.04, hz), V(hx, handle[1] + 0.13, hz), 0.015, M.steel));
-    g.add(rod(V(hx, handle[1] - 0.07, hz), V(hx, handle[1] + 0.1, hz), 0.02, M.rubber));
+    g.add(rod(V(hx, handle[1] - 0.07, hz), V(hx, handle[1] + 0.1, hz), 0.0165, M.rubber));   // (step 05) grip r 16.5 mm
     const knob = mesh(new THREE.SphereGeometry(0.024, 14, 10), R); knob.position.set(hx, handle[1] + 0.14, hz); g.add(knob);
   }
   return { group: g, parts: {}, anchors: { handle_L: V(handle[0], handle[1], handle[2]), handle_R: V(-handle[0], handle[1], handle[2]) } };

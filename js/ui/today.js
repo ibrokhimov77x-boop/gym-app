@@ -1,13 +1,13 @@
 // Экран «Сегодня»: следующая тренировка по кругу, цели, неделя, неделя знакомства и кнопка «Пришёл в зал».
 import { EXERCISES } from '../data/exercises.js';
-import { PROGRAM } from '../data/program.js';
+import { PROGRAM, currentNextIdx, nextIdxPatch } from '../data/program.js';
 import { attendance, weekStart, deloadAdvice } from '../analytics.js';
 import { getProfile, getState, getPrefs, finishedWorkouts, activeWorkout, updateState, updateProfile, saveWorkout, newWorkoutId } from '../storage.js';
 import { setClosingConfirmation, haptic } from '../telegram.js';
-import { html, raw, on, dayLong, clock, isoDay, plural, WEEKDAYS, restLabel } from './dom.js';
+import { html, raw, on, dayLong, clock, isoDay, plural, WEEKDAYS } from './dom.js';
 import { icon } from './icons.js';
 import { pageHeader, openSheet, confirmSheet } from './components.js';
-import { sessionTargets, calibInfo, nextSession, targetLabel, WRIST } from './model.js';
+import { sessionTargets, calibInfo, nextSession, targetLabel, estimateMinutes, supersetLabels, restHtml, SWAP_BADGE, WRIST } from './model.js';
 
 const DAY = 86400000;
 
@@ -55,6 +55,18 @@ function calibBanner(ci) {
   </section>`;
 }
 
+/**
+ * «Верх» на следующий день после «Руки и плечи» (или в тот же день) — локти и запястья без дня отдыха.
+ * Возвращает «вчера» / «сегодня» или null.
+ */
+function elbowsTired(session, finished) {
+  if (session.id !== 'upper' || !finished.length) return null;
+  const last = finished.reduce((a, w) => (Date.parse(w.start) > Date.parse(a.start) ? w : a));
+  if (last.session !== 'arms') return null;
+  const days = Math.round((Date.parse(isoDay(Date.now())) - Date.parse(isoDay(last.start))) / DAY);
+  return days === 0 ? 'сегодня' : days === 1 ? 'вчера' : null;
+}
+
 function activeCard(w) {
   const s = PROGRAM.sessions[w.session];
   const sets = w.ex.reduce((a, e) => a + e.sets.filter((x) => !x.warm).length, 0);
@@ -71,13 +83,17 @@ export function render(ctx) {
   const profile = getProfile(), state = getState(), prefs = getPrefs();
   const finished = finishedWorkouts();
   const active = activeWorkout();
-  const session = nextSession(state);
-  const rows = sessionTargets(finished, session, prefs);
+  const nextIdx = currentNextIdx(state, finished, active);
+  const session = nextSession(state, finished, active);
   const ci = calibInfo(profile, finished);
+  const rows = sessionTargets(finished, session, prefs, !ci.done);
   const totalSets = rows.reduce((a, r) => a + r.item.sets, 0);
-  const estMin = Math.round(rows.reduce((a, r) => a + r.item.sets * (r.item.rest + 45), 0) / 60 + 10);
+  const estMin = estimateMinutes(rows.map((r) => r.item), !ci.done);
+  const elbows = !active && elbowsTired(session, finished);
   const deload = deloadAdvice(finished);
   const order = PROGRAM.rotation.map((id, i) => ({ id, i, s: PROGRAM.sessions[id] }));
+  const pairs = supersetLabels(rows.map((r) => r.item));
+  const shortOf = (baseId) => { const r = rows.find((x) => x.item.baseId === baseId); return EXERCISES[r?.item.exId]?.short || ''; };
 
   root.innerHTML = html`
     ${pageHeader(greeting(), { kicker: dayLong(Date.now()) })}
@@ -96,18 +112,21 @@ export function render(ctx) {
         <button class="chip-btn" data-act="pick-session">${raw(icon('swap', 16))} Другая</button>
       </div>
       <div class="next-stats">
-        <div><b>${rows.length}</b><span>упражнений</span></div>
-        <div><b>${totalSets}</b><span>подходов</span></div>
-        <div><b>~${estMin}</b><span>минут</span></div>
+        <div><b>${rows.length}</b><span>${plural(rows.length, ['упражнение', 'упражнения', 'упражнений'])}</span></div>
+        <div><b>${totalSets}</b><span>${plural(totalSets, ['подход', 'подхода', 'подходов'])}</span></div>
+        <div><b>~${estMin}</b><span>${plural(estMin, ['минута', 'минуты', 'минут'])}</span></div>
       </div>
+      ${elbows ? html`<div class="tip warn">${raw(icon('alert', 18))}<p>«Руки и плечи» были ${elbows}. «Верх» снова нагружает локти и запястья — лучше сделать его завтра, а сегодня отдохнуть.</p></div>` : ''}
       <ol class="ex-list">
         ${rows.map(({ item, target }, i) => {
           const ex = EXERCISES[item.exId];
+          const pair = pairs.get(item.baseId);
+          const sw = SWAP_BADGE[item.reason];
           return html`<li class="ex-row tap" data-nav="#/ex/${item.exId}">
             <span class="ex-num">${i + 1}</span>
             <div class="ex-main">
-              <div class="ex-name">${ex?.name || item.exId}${item.reason ? html` <span class="badge ${item.reason === 'equip' ? 'warn' : 'info'}">замена</span>` : ''}</div>
-              <div class="ex-sub">${item.sets} × ${item.reps[0]}–${item.reps[1]} · RIR ${item.rir[0]}–${item.rir[1]} · отдых ${restLabel(item.rest)}</div>
+              <div class="ex-name">${pair ? html`<span class="badge accent">${pair.label}</span> ` : ''}${ex?.name || item.exId}${sw ? html` <span class="badge ${sw[0]}">${sw[1]}</span>` : ''}</div>
+              <div class="ex-sub">${item.sets} × ${item.reps[0]}–${item.reps[1]} · RIR ${item.rir[0]}–${item.rir[1]} · ${restHtml(item, pair, pair && shortOf(pair.partner))}</div>
               <div class="ex-target ${target.mode}">${raw(icon(target.mode === 'increase' ? 'bolt' : 'target', 14))} ${targetLabel(target)}</div>
             </div>
             <i class="wrist-dot ${WRIST[ex?.wrist]?.cls || ''}" title="${WRIST[ex?.wrist]?.label || ''}"></i>
@@ -115,7 +134,7 @@ export function render(ctx) {
         })}
       </ol>
       <div class="rotation">
-        ${order.map(({ s, i }) => html`<span class="rot ${i === state.nextIdx % 4 ? 'on' : ''}">${s.name}</span>${i < 3 ? raw(icon('right', 14)) : ''}`)}
+        ${order.map(({ s, i }) => html`<span class="rot ${i === nextIdx ? 'on' : ''}">${s.name}</span>${i < order.length - 1 ? raw(icon('right', 14)) : ''}`)}
       </div>
     </section>
     <div class="cta-spacer"></div>
@@ -169,16 +188,16 @@ function checkIn(ctx, session, rows, ci) {
 }
 
 function pickSession(ctx) {
-  const state = getState();
+  const cur = currentNextIdx(getState(), finishedWorkouts(), activeWorkout());
   openSheet({
     title: 'Какую тренировку делаем?',
     body: html`<p class="sheet-text">Круг продолжится со следующей после выбранной.</p>
       <div class="pick-list">${PROGRAM.rotation.map((id, i) => {
         const s = PROGRAM.sessions[id];
-        return html`<button class="pick ${i === state.nextIdx % 4 ? 'on' : ''}" data-i="${i}"><b>${s.name}</b><span>${s.focus}</span></button>`;
+        return html`<button class="pick ${i === cur ? 'on' : ''}" data-i="${i}"><b>${s.name}</b><span>${s.focus}</span></button>`;
       })}</div>`,
     onMount(el, close) {
-      on(el, 'click', '[data-i]', (e, b) => { updateState({ nextIdx: +b.dataset.i }); close(); ctx.refresh(); });
+      on(el, 'click', '[data-i]', (e, b) => { updateState(nextIdxPatch(+b.dataset.i)); close(); ctx.refresh(); });
     },
   });
 }
