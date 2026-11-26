@@ -1,7 +1,7 @@
-// Экран «Профиль»: параметры тела, таймер отдыха, экспорт/импорт, синхронизация с ботом, сброс и демо-режим.
+// Экран «Профиль»: параметры тела, таймер отдыха, экспорт/импорт, синхронизация с ботом, сброс данных.
 import { packForSend } from '../sync.js';
 import {
-  MODE, getProfile, getState, updateProfile, finishedWorkouts, getWorkout, markSynced, exportData, importData, resetAll, setDemoMode,
+  getProfile, getState, updateProfile, finishedWorkouts, getWorkout, markSynced, exportData, importData, resetAll,
 } from '../storage.js';
 import { inTelegram, canSendToBot, sendToBot, cloudAvailable, cloudStatus, haptic } from '../telegram.js';
 import { html, raw, on, plural, hhmm, num } from './dom.js';
@@ -64,12 +64,12 @@ export function render(ctx) {
   const p = getProfile();
   const unsynced = getState().unsynced.filter((id) => getWorkout(id)?.end);
   const total = finishedWorkouts().length;
-  const canSend = MODE === 'real' && canSendToBot();
+  const canSend = canSendToBot();
   const cs = cloudStatus();
   const bmi = p.bodyweight && p.heightCm ? p.bodyweight / (p.heightCm / 100) ** 2 : null;
 
   root.innerHTML = html`
-    ${pageHeader('Профиль', { kicker: MODE === 'demo' ? 'Демо-данные' : inTelegram ? 'Telegram' : 'Браузер' })}
+    ${pageHeader('Профиль', { kicker: inTelegram ? 'Telegram' : 'Браузер' })}
 
     <section class="section">
       <h3 class="section-title">${raw(icon('profile', 18))} Тело</h3>
@@ -94,10 +94,10 @@ export function render(ctx) {
       <h3 class="section-title">${raw(icon('send', 18))} Синхронизация с ботом</h3>
       <div class="card pad sync">
         <div class="sync-row"><span>Telegram</span><b class="${inTelegram ? 'good-text' : 'muted'}">${inTelegram ? 'открыто в Telegram' : 'обычный браузер'}</b></div>
-        <div class="sync-row"><span>Облако Telegram</span><b class="${cloudAvailable && MODE === 'real' ? (cs.ok ? 'good-text' : 'bad-text') : 'muted'}">${MODE !== 'real' ? 'выкл. в демо' : cloudAvailable ? (cs.ok ? `включено${cs.at ? ` · ${hhmm(cs.at)}` : ''}` : 'ошибка записи') : 'недоступно'}</b></div>
+        <div class="sync-row"><span>Облако Telegram</span><b class="${cloudAvailable ? (cs.ok ? 'good-text' : 'bad-text') : 'muted'}">${cloudAvailable ? (cs.ok ? `включено${cs.at ? ` · ${hhmm(cs.at)}` : ''}` : 'ошибка записи') : 'недоступно'}</b></div>
         <div class="sync-row"><span>Не отправлено в бота</span><b class="${unsynced.length ? 'warn-text' : 'good-text'}">${unsynced.length} ${plural(unsynced.length, ['тренировка', 'тренировки', 'тренировок'])}</b></div>
         ${canSend ? html`<button class="btn btn-primary wide" data-act="send" ${unsynced.length ? '' : 'disabled'}>${raw(icon('send', 20))} Отправить в бот</button>`
-          : html`<p class="hint">${raw(icon('info', 16))} ${MODE === 'demo' ? 'В демо-режиме отправка выключена.' : sendHint()}</p>`}
+          : html`<p class="hint">${raw(icon('info', 16))} ${sendHint()}</p>`}
       </div>
     </section>
 
@@ -112,15 +112,8 @@ export function render(ctx) {
     </section>
 
     <section class="section">
-      <div class="card pad demo-card ${MODE === 'demo' ? 'on' : ''}">
-        <label class="switch-row"><span><b>Демо-режим</b><small>8 недель синтетических тренировок, чтобы посмотреть мониторинг. Хранится отдельно и не смешивается с твоими данными.</small></span>
-        <input type="checkbox" class="switch" data-act-change="demo" ${MODE === 'demo' ? 'checked' : ''}></label>
-      </div>
-    </section>
-
-    <section class="section">
-      <button class="btn btn-danger-soft wide" data-act="reset">${raw(icon('trash', 18))} ${MODE === 'demo' ? 'Пересоздать демо-данные' : 'Сбросить все данные'}</button>
-      <p class="footnote">Upper/Lower · данные хранятся на устройстве${MODE === 'real' && cloudAvailable ? ' и в облаке Telegram' : ''}.</p>
+      <button class="btn btn-danger-soft wide" data-act="reset">${raw(icon('trash', 18))} Сбросить все данные</button>
+      <p class="footnote">Upper/Lower · данные хранятся на устройстве${cloudAvailable ? ' и в облаке Telegram' : ''}.</p>
     </section>`.s;
 
   ctx.cleanup(on(root, 'change', '[data-f]', (e, inp) => {
@@ -131,7 +124,6 @@ export function render(ctx) {
     toast('Сохранено', 'good');
     ctx.refresh();
   }));
-  ctx.cleanup(on(root, 'change', '[data-act-change="demo"]', (e, inp) => setDemoMode(inp.checked)));
   ctx.cleanup(on(root, 'change', '[data-file]', async (e, inp) => {
     const f = inp.files?.[0];
     if (f) doImport(await f.text(), ctx);
@@ -145,15 +137,15 @@ export function render(ctx) {
     if (act === 'copy') { const ok = await copy(json()); toast(ok ? 'JSON скопирован' : 'Не удалось скопировать', ok ? 'good' : 'bad'); }
     if (act === 'paste') pasteSheet(ctx);
     if (act === 'reset') {
-      const demo = MODE === 'demo';
       const ok = await confirmSheet({
-        title: demo ? 'Пересоздать демо?' : 'Сбросить все данные?',
-        text: demo ? 'Демо-данные будут сгенерированы заново.' : 'Все тренировки, настройки и копия в облаке Telegram будут удалены. Это нельзя отменить. Сначала сделай экспорт, если данные нужны.',
-        ok: demo ? 'Пересоздать' : 'Удалить всё', danger: !demo,
+        title: 'Сбросить все данные?',
+        text: 'Все тренировки, настройки и копия в облаке Telegram будут удалены. Это нельзя отменить. Сначала сделай экспорт, если данные нужны.',
+        ok: 'Удалить всё', danger: true,
       });
       if (!ok) return;
       resetAll();
-      if (demo) location.reload(); else { toast('Данные удалены'); ctx.nav('#/today', { replace: true }); }
+      toast('Данные удалены');
+      ctx.nav('#/today', { replace: true });
     }
   }));
 }

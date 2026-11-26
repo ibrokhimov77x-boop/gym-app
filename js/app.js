@@ -1,5 +1,5 @@
 // Точка входа Mini App: хранилище, Telegram, хэш-роутер и нижняя навигация.
-import { initStore, MODE, activeWorkout, setMirror, mergeRemote, allWorkouts, seedDemo } from './storage.js';
+import { initStore, activeWorkout, setMirror, mergeRemote } from './storage.js';
 import { initTelegram, showBack, cloudMirror, cloudReadAll, cloudAvailable } from './telegram.js';
 import { closeTopSheet, installPressFeedback, toast } from './ui/components.js';
 import { icon } from './ui/icons.js';
@@ -117,11 +117,6 @@ function renderTabbar() {
 
 async function boot() {
   initStore();
-  if (MODE === 'demo' && !allWorkouts().length) {
-    const { buildDemo } = await import('./ui/demo.js');
-    seedDemo(buildDemo());
-  }
-  if (MODE === 'demo') document.body.classList.add('is-demo');
   initTelegram({ onBack: back });
   installPressFeedback();
   initRest();
@@ -139,7 +134,7 @@ async function boot() {
   onHash();
 
   // Облачное зеркало Telegram: слить и продолжать дублировать записи
-  if (MODE === 'real' && cloudAvailable) {
+  if (cloudAvailable) {
     setMirror(cloudMirror);
     try {
       const remote = await cloudReadAll();

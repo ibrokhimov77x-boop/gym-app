@@ -2,7 +2,7 @@
 import { EXERCISES } from '../data/exercises.js';
 import { PROGRAM } from '../data/program.js';
 import { workoutSummary } from '../analytics.js';
-import { getWorkout, finishedWorkouts, getProfile, MODE } from '../storage.js';
+import { getWorkout, finishedWorkouts, getProfile } from '../storage.js';
 import { canSendToBot } from '../telegram.js';
 import { html, raw, on, minutes, tonnage, dayLong, plural, num } from './dom.js';
 import { icon } from './icons.js';
@@ -20,7 +20,7 @@ export function render(ctx) {
   const sum = workoutSummary(all, w);
   const ci = calibInfo(getProfile(), all);
   const prIds = new Set(sum.prs.map((p) => p.exId));
-  const canSend = MODE === 'real' && canSendToBot();
+  const canSend = canSendToBot();
 
   root.innerHTML = html`
     <section class="hero-done">
@@ -53,7 +53,7 @@ export function render(ctx) {
     </section>
 
     <section class="card send">
-      <div class="send-top">${raw(icon('send', 22))}<div><h3>Отправить тренеру в бот</h3><p>${canSend ? 'Бот проанализирует тренировку и даст советы. Приложение закроется после отправки.' : MODE === 'demo' ? 'В демо-режиме отправка выключена.' : sendHint()}</p></div></div>
+      <div class="send-top">${raw(icon('send', 22))}<div><h3>Отправить тренеру в бот</h3><p>${canSend ? 'Бот проанализирует тренировку и даст советы. Приложение закроется после отправки.' : sendHint()}</p></div></div>
       ${canSend ? html`<button class="btn btn-primary" data-act="send">${raw(icon('send', 20))} Отправить в бот</button>` : ''}
     </section>
     <div class="cta-spacer"></div>

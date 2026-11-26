@@ -2,7 +2,7 @@
 import { EXERCISES } from '../data/exercises.js';
 import { PROGRAM } from '../data/program.js';
 import { attendance, weekStart, deloadAdvice } from '../analytics.js';
-import { getProfile, getState, getPrefs, finishedWorkouts, activeWorkout, updateState, updateProfile, saveWorkout, newWorkoutId, MODE } from '../storage.js';
+import { getProfile, getState, getPrefs, finishedWorkouts, activeWorkout, updateState, updateProfile, saveWorkout, newWorkoutId } from '../storage.js';
 import { setClosingConfirmation, haptic } from '../telegram.js';
 import { html, raw, on, dayLong, clock, isoDay, plural, WEEKDAYS, restLabel } from './dom.js';
 import { icon } from './icons.js';
@@ -80,7 +80,7 @@ export function render(ctx) {
   const order = PROGRAM.rotation.map((id, i) => ({ id, i, s: PROGRAM.sessions[id] }));
 
   root.innerHTML = html`
-    ${pageHeader(greeting(), { kicker: dayLong(Date.now()), right: MODE === 'demo' ? html`<span class="badge warn">Демо</span>` : '' })}
+    ${pageHeader(greeting(), { kicker: dayLong(Date.now()) })}
     ${active ? activeCard(active) : ''}
     ${weekStrip(finished)}
     ${calibBanner(ci)}

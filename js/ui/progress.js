@@ -5,7 +5,7 @@ import {
   attendance, effectiveness, muscleHeat, muscleVolume, muscleProgress, VOLUME_TARGETS, exerciseHistory, progressRate,
   prs, stalls, deloadAdvice, weekStart, duration, workoutSummary, setVolume, workingSets,
 } from '../analytics.js';
-import { finishedWorkouts, setDemoMode } from '../storage.js';
+import { finishedWorkouts } from '../storage.js';
 import { lineChart, barChart, calendarHeatmap, chartWidth } from '../charts.js';
 import { html, raw, on, num, tonnage, minutes, dayShort, hourLabel, isoDay, plural } from './dom.js';
 import { icon } from './icons.js';
@@ -171,9 +171,8 @@ export function render(ctx) {
   const { root } = ctx;
   const ws = finishedWorkouts();
   if (!ws.length) {
-    root.innerHTML = html`${pageHeader('Прогресс')}${emptyState('progress', 'Здесь будет твой прогресс', 'После первых тренировок появятся графики силы, рейтинг упражнений, карта мышц и посещаемость. Хочешь посмотреть, как это выглядит?',
-      html`<button class="btn btn-secondary" data-act="demo">Открыть демо-данные</button>`)}`.s;
-    ctx.cleanup(on(root, 'click', '[data-act="demo"]', () => setDemoMode(true)));
+    root.innerHTML = html`${pageHeader('Прогресс')}${emptyState('progress', 'Здесь будет твой прогресс', 'После первых тренировок появятся графики силы, рейтинг упражнений, карта мышц и посещаемость. Начни с кнопки «Пришёл в зал» на экране «Сегодня».',
+      html`<button class="btn btn-secondary" data-nav="#/today">К тренировке</button>`)}`.s;
     return;
   }
   const att = attendance(ws);

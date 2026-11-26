@@ -1,22 +1,16 @@
 // Хранилище приложения. Контракт ключей: docs/DATA_CONTRACT.md
 // Основное — localStorage (мгновенно, офлайн). Зеркало — Telegram CloudStorage (подключается из telegram.js через setMirror).
 // Каждая запись получает поле upd (ISO) при сохранении; при слиянии побеждает запись с более поздним upd.
-// Демо-режим живёт в отдельном пространстве имён и никогда не смешивается с реальными данными и облаком.
 
-const MODE_FLAG = 'gym:mode';
+const NS = 'gym:';
 
-/** Режим определяется до загрузки: ?demo=1 или флаг из профиля. ?demo=0 выключает флаг. */
-function detectMode() {
-  const q = new URLSearchParams(location.search).get('demo');
+// Демо-режима больше нет. Стираем то, что от него могло остаться на устройстве: пространство `gymdemo:`
+// и флаг `gym:mode`. Настоящие данные (`gym:*`) и облако Telegram не трогаем — демо туда никогда не писало.
+(function purgeDemoLeftovers() {
   try {
-    if (q === '0') localStorage.removeItem(MODE_FLAG);
-    if (q === '1') return 'demo';
-    return localStorage.getItem(MODE_FLAG) === 'demo' ? 'demo' : 'real';
-  } catch { return q === '1' ? 'demo' : 'real'; }
-}
-
-export const MODE = detectMode();
-const NS = MODE === 'demo' ? 'gymdemo:' : 'gym:';
+    for (const k of Object.keys(localStorage)) if (k.startsWith('gymdemo:') || k === 'gym:mode') localStorage.removeItem(k);
+  } catch { /* приватный режим */ }
+})();
 
 const DEFAULT_PROFILE = { v: 1, bodyweight: null, heightCm: null, startDate: null, wristCare: true, calibrationDone: false, restDefault: 90, autoRest: true };
 const DEFAULT_STATE = { v: 1, nextIdx: 0, activeWorkoutId: null, unsynced: [] };
@@ -37,10 +31,10 @@ let profile, state, prefs;
 const wmap = new Map();
 let mirror = null;
 
-/** Записать ключ локально и (для реальных данных) в облачное зеркало. */
+/** Записать ключ локально и в облачное зеркало. */
 function persist(key, value) {
   lsSet(key, value);
-  if (MODE === 'real' && mirror) mirror.put(key, value);
+  if (mirror) mirror.put(key, value);
 }
 
 function saveIndex() { lsSet('wl', [...wmap.keys()]); }
@@ -149,7 +143,6 @@ export function setMirror(m) { mirror = m; }
  * новее локально или нет в облаке → отправляем в облако. Возвращает true, если локальные данные изменились.
  */
 export function mergeRemote(remote) {
-  if (MODE !== 'real') return false;
   let changed = false;
   const take = (key, local, apply) => {
     const r = remote[key];
@@ -171,32 +164,11 @@ export function mergeRemote(remote) {
   return changed;
 }
 
-/** Полный сброс текущего пространства (и облака, если это реальные данные). */
+/** Полный сброс: все данные приложения на устройстве и их копия в облаке Telegram. */
 export function resetAll() {
   try {
     for (const k of Object.keys(localStorage)) if (k.startsWith(NS)) localStorage.removeItem(k);
   } catch { /* приватный режим */ }
-  if (MODE === 'real') mirror?.removeAll();
+  mirror?.removeAll();
   initStore();
- 
-}
-
-/** Демо: заполнить пустое демо-пространство сгенерированными данными. */
-export function seedDemo({ profile: p, state: s, prefs: pr, workouts }) {
-  if (MODE !== 'demo') return;
-  for (const w of workouts) { wmap.set(w.id, w); lsSet('w_' + w.id, w); }
-  saveIndex();
-  profile = { ...DEFAULT_PROFILE, ...p }; lsSet('profile', profile);
-  state = { ...DEFAULT_STATE, ...s }; lsSet('state', state);
-  prefs = { ...DEFAULT_PREFS, ...pr }; lsSet('prefs', prefs);
-}
-
-/** Включить/выключить демо-режим (с перезагрузкой). */
-export function setDemoMode(on) {
-  try { if (on) localStorage.setItem(MODE_FLAG, 'demo'); else localStorage.removeItem(MODE_FLAG); } catch { /* ignore */ }
-  const url = new URL(location.href);
-  url.searchParams.delete('demo');
-  if (on) url.searchParams.set('demo', '1');
-  url.hash = '#/profile';
-  location.replace(url.toString());
 }
